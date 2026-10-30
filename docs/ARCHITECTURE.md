@@ -132,16 +132,53 @@ per request, not per session.
 
 The non-negotiables, and where each one actually lives:
 
-|                                                                   | Where                                                                                                         |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Secrets in server env only                                        | `app/lib/env.server.ts`, and the `.server.ts` boundary                                                        |
-| Signed session cookie, HttpOnly, Secure, SameSite=Lax             | `app/lib/session.ts`                                                                                          |
-| CSRF protection on every state-changing request                   | To add with the studio (Phase 5)                                                                              |
-| Input validation with zod, server-side, on every field            | `app/lib/env.server.ts` now; studio next                                                                      |
-| Least-privilege Admin API scopes                                  | The table above                                                                                               |
-| Strict CSP with nonces, HSTS, Referrer-Policy, Permissions-Policy | To add in Phase 2; `assetsInlineLimit: 0` is already set in `vite.config.ts` so that a strict CSP is possible |
-| CI fails on high and critical advisories, secrets, code findings  | `.github/workflows/security.yml`                                                                              |
-| Repository settings: ruleset, secret scanning, Dependabot         | `docs/REPOSITORY-SETTINGS.md`                                                                                 |
+|                                                                                          | Where                                                                                                         |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Secrets in server env only                                                               | `app/lib/env.server.ts`, and the `.server.ts` boundary                                                        |
+| Signed session cookie, HttpOnly, Secure, SameSite=Lax                                    | `app/lib/session.ts`                                                                                          |
+| CSRF protection on every state-changing request                                          | To add with the studio (Phase 5)                                                                              |
+| Input validation with zod, server-side, on every field                                   | `app/lib/env.server.ts` now; studio next                                                                      |
+| Least-privilege Admin API scopes                                                         | The table above                                                                                               |
+| Strict CSP with nonces, HSTS, Referrer-Policy, Permissions-Policy                        | To add in Phase 2; `assetsInlineLimit: 0` is already set in `vite.config.ts` so that a strict CSP is possible |
+| CI fails on high and critical advisories in what ships, on secrets, and on code findings | `.github/workflows/security.yml`, and "Dependency advisories" below                                           |
+| Repository settings: ruleset, secret scanning, Dependabot                                | `docs/REPOSITORY-SETTINGS.md`                                                                                 |
+
+### Dependency advisories, and why the gate is scoped to production
+
+The blocking check is `pnpm audit --prod --audit-level high`. That is narrower than the brief
+asked for, and the narrowing is deliberate.
+
+Every advisory currently outstanding is a transitive dependency of a **development tool**: the
+local dev server (`@shopify/mini-oxygen`, which bundles miniflare) and the codegen tool. None of
+it is in the deployed worker, and we cannot fix any of it from here — Shopify has to update its
+own tooling. The only ways to make an unscoped check green would be to force patched versions
+several majors up through a worker-runtime emulator, or to ignore the findings with an expiry date
+and keep renewing it. The first risks a dev server that breaks in ways nobody can explain; the
+second is a lie with a calendar reminder attached.
+
+A permanently red required check gets switched off, and then nothing is watched at all. So:
+
+- **`pnpm audit --prod` blocks.** If it fails, something that reaches a buyer is affected.
+- **The full audit is reported** on the run summary, where the list stays visible and should
+  shrink as Shopify updates its packages.
+- **Overrides fix what can be fixed safely**, in `pnpm-workspace.yaml`, and only within the same
+  major version.
+- **Trivy blocks on secrets and misconfiguration** but only reports dependency findings, because
+  it reads the lockfile and cannot tell a development dependency from one that ships. pnpm can, so
+  pnpm decides.
+
+Worth rechecking whenever Shopify releases a new `@shopify/mini-oxygen`.
+
+### Hydrogen stays on the 2026.4 line, for now
+
+`@shopify/hydrogen` is pinned to `~2026.4.0`, with a tilde rather than a caret on purpose: a caret
+resolves to 2026.10, and **2026.10 is a breaking change**. It removes `hydrogen()` from
+`@shopify/hydrogen/vite` and the `shopify hydrogen build` command, and needs Shopify's
+[migration guide](https://shopify.dev/docs/storefronts/hydrogen/migrate) followed properly.
+
+That migration is worth doing — it is the current line and where the fixes will land — but it is a
+piece of work in its own right, not something to slip into a set-up branch. Until then the tilde
+keeps us on a line the app actually runs on.
 
 Things that are true now and should stay true:
 

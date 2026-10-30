@@ -270,6 +270,24 @@ and the reason goes in this file first.
 
 ---
 
+## 4a. Two things CI's first run settled
+
+Both found by the security workflow on the pull request that introduced it, which is the point of
+having it.
+
+**The dependency gate is scoped to production dependencies.** Every outstanding high advisory is a
+transitive dependency of the local dev server or the codegen tool, none of it ships, and none of it
+is ours to fix. `docs/ARCHITECTURE.md` has the full reasoning. `pnpm audit --prod` is clean, and
+that is what blocks a merge.
+
+**Hydrogen stays on the 2026.4 line.** Upgrading to the current 2026.10 was attempted and reverted:
+it is a breaking change that removes `hydrogen()` from the Vite plugin and the
+`shopify hydrogen build` command, and it needs Shopify's migration guide followed properly.
+`@shopify/hydrogen` is pinned with a tilde so a caret range cannot wander into it.
+
+**Worth scheduling as its own piece of work**, since 2026.4 will stop getting fixes eventually.
+Not Phase 0, and not something to bury in a set-up branch.
+
 ## 5. Still to decide
 
 Needed before the phases that depend on them, not now:
