@@ -144,7 +144,7 @@ POST https://pjk.co.in/next/phulhaar/sign-in/verify
 **On success, 200:**
 
 ```json
-{"token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InBqay0yMDI2LTEwIn0..."}
+{"token": "<base64url header>.<base64url claims>.<base64url signature>"}
 ```
 
 **On failure**, the status and a stable `code`, with no further detail:
