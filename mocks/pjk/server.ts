@@ -167,7 +167,7 @@ async function signatureIsGood(
   return {ok: true};
 }
 
-const server = createServer(async (request, response) => {
+async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const path = new URL(request.url ?? '/', `http://localhost:${PORT}`).pathname;
 
   if (request.method === 'GET' && path === '/.well-known/jwks.json') {
@@ -257,6 +257,20 @@ const server = createServer(async (request, response) => {
   }
 
   return send(response, 404, {code: 'no_such_endpoint'});
+}
+
+/**
+ * The handler is async, and Node's createServer ignores the promise it returns. Left that way, a
+ * thrown error inside it becomes an unhandled rejection that takes the whole mock down mid-test
+ * and leaves the request hanging until it times out, which reads like a bug in the app rather
+ * than in the mock. Catching it here answers with a 500 and keeps the server up.
+ */
+const server = createServer((request, response) => {
+  handle(request, response).catch((error: unknown) => {
+    console.error('mock PJK failed to handle a request:', error);
+    if (!response.headersSent) send(response, 500, {code: 'mock_failed'});
+    else response.end();
+  });
 });
 
 server.listen(PORT, () => {
