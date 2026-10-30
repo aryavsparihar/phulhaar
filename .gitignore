@@ -1,0 +1,31 @@
+node_modules
+/.cache
+/build
+/dist
+/public/build
+/.mf
+.shopify
+.react-router
+
+# Secrets. Only .env.example is committed.
+.env
+.env.*
+!.env.example
+
+# Test output
+/playwright-report
+/test-results
+/coverage
+
+# Local scratch and editor noise
+.DS_Store
+*.log
+
+# AI tooling is never committed (see docs/CONTRIBUTING notes in README.md)
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/
+
+# TypeScript incremental build state
+*.tsbuildinfo
