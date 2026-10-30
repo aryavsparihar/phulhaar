@@ -7,10 +7,12 @@ node_modules
 .shopify
 .react-router
 
-# Secrets. Only .env.example is committed.
+# Secrets. Only the two files with no real values in them are committed: .env.example, which
+# documents every variable, and .env.e2e, which the test suite runs against.
 .env
 .env.*
 !.env.example
+!.env.e2e
 
 # Test output
 /playwright-report

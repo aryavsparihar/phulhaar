@@ -20,7 +20,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : undefined,
   forbidOnly: !!process.env.CI,
-  reporter: process.env.CI ? [['github'], ['html', {open: 'never'}]] : [['list']],
+  reporter: process.env.CI
+    ? [['github'], ['html', {open: 'never'}]]
+    : [['list']],
   use: {
     baseURL,
     trace: 'on-first-retry',
@@ -31,15 +33,13 @@ export default defineConfig({
     {name: 'desktop', use: {...devices['Desktop Chrome']}},
   ],
   webServer: {
-    command: `pnpm exec shopify hydrogen dev --port ${port}`,
+    // --env-file rather than this block's `env`: Hydrogen runs the app inside workerd, and the
+    // worker's environment comes from a file rather than from the process that started the dev
+    // server, so variables set here never reach it. .env.e2e is committed and holds only
+    // throwaway values.
+    command: `pnpm exec shopify hydrogen dev --port ${port} --env-file .env.e2e`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
-    env: {
-      SESSION_SECRET: 'e2e-only-session-secret-0000000000000000',
-      PUBLIC_STORE_DOMAIN: 'mock.shop',
-      PJK_BASE_URL: 'http://localhost:4010',
-      PHULHAAR_SITE_URL: baseURL,
-    },
   },
 });

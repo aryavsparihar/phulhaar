@@ -1,0 +1,111 @@
+# The security checks, on every push and pull request, and again every Monday so that an advisory
+# published about a dependency we already use is noticed without waiting for someone to change
+# something.
+#
+# All of it is free on a public repository. CodeQL is not here: it runs through GitHub's default
+# setup, which is switched on in the repository's settings rather than committed as a workflow
+# (docs/REPOSITORY-SETTINGS.md).
+#
+# Each tool is a pinned release whose checksum is verified before it runs, so a compromised
+# release cannot quietly replace a scanner. Both checksums below were verified against the
+# published archives when they were added.
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1' # Mondays, 08:30 in India
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole history: a secret that was removed in a later commit was still committed,
+          # and is still in the clone anyone can make.
+          fetch-depth: 0
+
+      - name: gitleaks, every commit
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          # --redact: the log of a public repository must not print the secret it just found.
+          ./gitleaks git --redact --no-banner --exit-code 1 .
+
+  dependencies:
+    name: Dependency and config scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      # High and critical only. Failing on every moderate advisory in a transitive development
+      # dependency trains people to ignore the check, which is worse than not having it.
+      - name: pnpm audit
+        run: pnpm audit --audit-level high
+
+      - name: Install Trivy
+        run: |
+          curl -sSfL -o trivy.tar.gz \
+            https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  trivy.tar.gz" | sha256sum -c -
+          tar -xzf trivy.tar.gz trivy
+
+      # Dependencies, secrets in the working tree, and misconfiguration in the workflows
+      # themselves. Anything that cannot be fixed yet must be listed in .trivyignore.yaml with a
+      # reason and a date to look again; past that date it fails here until somebody does.
+      - name: Trivy, high and critical
+        run: |
+          ./trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL \
+            --ignorefile .trivyignore.yaml --exit-code 1 --skip-dirs node_modules .
+
+      # A bill of materials for each commit on main, so that when the next advisory lands we can
+      # answer "are we affected" from a file rather than by guessing.
+      - name: Software bill of materials
+        run: ./trivy fs --format cyclonedx --output sbom.cdx.json --skip-dirs node_modules .
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          retention-days: 90
+
+  code:
+    name: Code scan (Semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Injection, unsafe HTML, weak crypto and the like in our own code. Semgrep's community
+      # rules need no account. A finding reviewed and judged safe carries a nosemgrep comment
+      # saying why, so the reasoning sits next to the code rather than in a dashboard.
+      - name: Semgrep
+        run: |
+          pipx install semgrep==1.180.0
+          semgrep scan --metrics=off --error \
+            --config p/default --config p/typescript --config p/react \
+            --exclude node_modules \
+            --exclude 'storefrontapi.generated.d.ts' \
+            --exclude 'customer-accountapi.generated.d.ts' \
+            .
