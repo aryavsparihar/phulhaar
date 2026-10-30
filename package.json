@@ -1,6 +1,6 @@
 {
   "name": "phulhaar-gallery",
-  "description": "Phulhaar Gallery by PAT and J.K. Co. — the storefront and the artists' studio",
+  "description": "Phulhaar Gallery by PAT and J.K. Co. \u2014 the storefront and the artists' studio",
   "private": true,
   "sideEffects": false,
   "version": "0.1.0",
@@ -63,7 +63,6 @@
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-jest": "^28.11.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",

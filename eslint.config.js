@@ -7,7 +7,6 @@ import globals from 'globals';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import _import from 'eslint-plugin-import';
 import tsParser from '@typescript-eslint/parser';
-import jest from 'eslint-plugin-jest';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import js from '@eslint/js';
@@ -222,19 +221,15 @@ export default [
       },
     },
   },
-  ...compat.extends('plugin:jest/recommended').map((config) => ({
-    ...config,
-    files: ['**/*.test.*'],
-  })),
   {
+    // Tests run on Vitest, not Jest. Hydrogen's skeleton wired eslint-plugin-jest in here, and it
+    // crashes the whole lint run when it cannot find a Jest version to detect. Nothing is lost by
+    // dropping it: these tests import describe, it and expect from vitest rather than relying on
+    // globals, so there are no undefined names for a plugin to resolve.
     files: ['**/*.test.*'],
-    plugins: {
-      jest,
-    },
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
       },
     },
   },
