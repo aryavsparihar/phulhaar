@@ -147,6 +147,11 @@ POST https://pjk.co.in/next/phulhaar/sign-in/verify
 {"token": "<base64url header>.<base64url claims>.<base64url signature>"}
 ```
 
+The three parts are named rather than shown. Please keep it that way: a realistic `eyJ...` string
+here, even an invented one, is matched by gitleaks' JWT rule on shape alone and fails the secret
+scan for everybody. The claims are written out in full below, which is the part worth reading
+anyway.
+
 **On failure**, the status and a stable `code`, with no further detail:
 
 | Status | `code`              | Means                                                        |

@@ -44,7 +44,10 @@ jobs:
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
           tar -xzf gitleaks.tar.gz gitleaks
           # --redact: the log of a public repository must not print the secret it just found.
-          ./gitleaks git --redact --no-banner --exit-code 1 .
+          # --config is passed explicitly rather than relying on the file being found, so that a
+          # rename or a change of working directory fails loudly instead of quietly dropping the
+          # one allowlisted string and failing every run. .gitleaks.toml says what that is and why.
+          ./gitleaks git --redact --no-banner --exit-code 1 --config .gitleaks.toml .
 
   dependencies:
     name: Dependency and config scan
