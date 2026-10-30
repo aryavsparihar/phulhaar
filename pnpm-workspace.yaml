@@ -11,6 +11,5 @@ allowBuilds:
   workerd: true
 
 # Refuse a dependency published in the last week. A compromised release is usually found and
-# pulled within days, and nothing here is urgent enough to take that risk. Mirrored in .npmrc for
-# tools that read that setting instead.
+# pulled within days, and nothing here is urgent enough to take that risk.
 minimumReleaseAge: 10080
