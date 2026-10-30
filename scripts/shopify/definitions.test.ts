@@ -24,7 +24,7 @@ const KEY = /^[a-z][a-z0-9_]{0,29}$/;
 const METAOBJECT_TYPE = /^[a-z][a-z0-9_-]*$/;
 
 describe('the namespace', () => {
-  it('is within Shopify\'s 20-character limit', () => {
+  it("is within Shopify's 20-character limit", () => {
     expect(NAMESPACE.length).toBeLessThanOrEqual(20);
     expect(NAMESPACE).toMatch(/^[a-z][a-z0-9_]*$/);
   });
@@ -33,7 +33,9 @@ describe('the namespace', () => {
 describe('product metafields', () => {
   it('have keys Shopify will accept', () => {
     for (const field of PRODUCT_METAFIELDS) {
-      expect(field.key, `${field.key} is not a usable metafield key`).toMatch(KEY);
+      expect(field.key, `${field.key} is not a usable metafield key`).toMatch(
+        KEY,
+      );
     }
   });
 
@@ -45,12 +47,17 @@ describe('product metafields', () => {
   it('every one is described, so the admin explains itself', () => {
     for (const field of PRODUCT_METAFIELDS) {
       expect(field.name.length, `${field.key} has no name`).toBeGreaterThan(0);
-      expect(field.description.length, `${field.key} has no description`).toBeGreaterThan(10);
+      expect(
+        field.description.length,
+        `${field.key} has no description`,
+      ).toBeGreaterThan(10);
     }
   });
 
   it('only marks a field as a filter when Search & Discovery can filter on its type', () => {
-    for (const field of PRODUCT_METAFIELDS.filter((candidate) => candidate.filter)) {
+    for (const field of PRODUCT_METAFIELDS.filter(
+      (candidate) => candidate.filter,
+    )) {
       expect(
         FILTERABLE_TYPES.has(field.type),
         `${field.key} is marked as a filter but ${field.type} cannot be filtered on`,
@@ -75,8 +82,14 @@ describe('product metafields', () => {
         (validation) => validation.name === 'metaobject_definition_type',
       );
 
-      expect(target, `${field.key} is a metaobject reference with no target type`).toBeDefined();
-      expect(known, `${field.key} points at an unknown metaobject type`).toContain(target!.value);
+      expect(
+        target,
+        `${field.key} is a metaobject reference with no target type`,
+      ).toBeDefined();
+      expect(
+        known,
+        `${field.key} points at an unknown metaobject type`,
+      ).toContain(target!.value);
     }
   });
 
@@ -87,7 +100,9 @@ describe('product metafields', () => {
   });
 
   it('never lets an artist write a field that is derived or decided by staff', () => {
-    const byKey = new Map(PRODUCT_METAFIELDS.map((field) => [field.key, field]));
+    const byKey = new Map(
+      PRODUCT_METAFIELDS.map((field) => [field.key, field]),
+    );
 
     // The ones it would be most damaging to let an artist set themselves.
     expect(byKey.get('orientation')?.editor).toBe('computed');
@@ -108,28 +123,37 @@ describe('taxonomies', () => {
   it('have unique handles within each taxonomy', () => {
     for (const taxonomy of TAXONOMIES) {
       const handles = taxonomy.entries.map((entry) => entry.handle);
-      expect(new Set(handles).size, `${taxonomy.type} has a repeated handle`).toBe(handles.length);
+      expect(
+        new Set(handles).size,
+        `${taxonomy.type} has a repeated handle`,
+      ).toBe(handles.length);
     }
   });
 
   it('give every entry a handle Shopify will accept', () => {
     for (const taxonomy of TAXONOMIES) {
       for (const entry of taxonomy.entries) {
-        expect(entry.handle, `${taxonomy.type}/${entry.name}`).toMatch(/^[a-z0-9][a-z0-9-]*$/);
+        expect(entry.handle, `${taxonomy.type}/${entry.name}`).toMatch(
+          /^[a-z0-9][a-z0-9-]*$/,
+        );
         expect(entry.name.length).toBeGreaterThan(0);
       }
     }
   });
 
   it('lists every state and union territory, since the directory is grouped by them', () => {
-    const states = TAXONOMIES.find((taxonomy) => taxonomy.type === 'phulhaar_state');
+    const states = TAXONOMIES.find(
+      (taxonomy) => taxonomy.type === 'phulhaar_state',
+    );
     // 28 states and 8 union territories.
     expect(states?.entries).toHaveLength(36);
   });
 
   it('gives only the colour taxonomy a swatch, which is what a swatch filter needs', () => {
     const withColour = TAXONOMIES.filter((taxonomy) => taxonomy.withColour);
-    expect(withColour.map((taxonomy) => taxonomy.type)).toEqual(['phulhaar_colour']);
+    expect(withColour.map((taxonomy) => taxonomy.type)).toEqual([
+      'phulhaar_colour',
+    ]);
   });
 
   it('stays well inside the 128 metaobject definitions a store may have', () => {
@@ -150,22 +174,41 @@ describe('the artist metaobject', () => {
   });
 
   it('requires the Artist ID, which is the join to PJK', () => {
-    const artistId = ARTIST_METAOBJECT.fields.find((field) => field.key === 'artist_id');
+    const artistId = ARTIST_METAOBJECT.fields.find(
+      (field) => field.key === 'artist_id',
+    );
 
     expect(artistId?.required).toBe(true);
-    expect(artistId?.validations?.[0]).toEqual({name: 'regex', value: '^(AT|PT)\\d{6,}$'});
+    expect(artistId?.validations?.[0]).toEqual({
+      name: 'regex',
+      value: '^(AT|PT)\\d{6,}$',
+    });
   });
 
   it('holds nothing that belongs to KYC', () => {
     // The whole arrangement with PJK rests on this. A field named like any of these would mean
     // identity data had started leaking into the gallery.
-    const forbidden = ['pan', 'aadhaar', 'aadhar', 'bank', 'account', 'ifsc', 'email', 'phone',
-      'address', 'dob', 'passport'];
+    const forbidden = [
+      'pan',
+      'aadhaar',
+      'aadhar',
+      'bank',
+      'account',
+      'ifsc',
+      'email',
+      'phone',
+      'address',
+      'dob',
+      'passport',
+    ];
     const keys = ARTIST_METAOBJECT.fields.map((field) => field.key);
 
     for (const key of keys) {
       for (const word of forbidden) {
-        expect(key.includes(word), `the artist metaobject must not hold ${key}`).toBe(false);
+        expect(
+          key.includes(word),
+          `the artist metaobject must not hold ${key}`,
+        ).toBe(false);
       }
     }
   });

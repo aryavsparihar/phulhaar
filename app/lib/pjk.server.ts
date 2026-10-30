@@ -62,7 +62,9 @@ const encoder = new TextEncoder();
 
 /** Lower-case hex, which is what both sides of the contract compare. */
 function toHex(bytes: ArrayBuffer): string {
-  return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return [...new Uint8Array(bytes)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export async function sha256Hex(body: string): Promise<string> {
@@ -90,7 +92,10 @@ export function signingPayload({
   return `v1.${timestamp}.${method.toUpperCase()}.${path}.${bodyDigest}`;
 }
 
-export async function signPayload(secret: string, payload: string): Promise<string> {
+export async function signPayload(
+  secret: string,
+  payload: string,
+): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     encoder.encode(secret),
@@ -147,7 +152,12 @@ export async function verifySignedRequest({
 
   const expected = await signPayload(
     secret,
-    signingPayload({timestamp, method, path, bodyDigest: await sha256Hex(body)}),
+    signingPayload({
+      timestamp,
+      method,
+      path,
+      bodyDigest: await sha256Hex(body),
+    }),
   );
 
   return constantTimeEqual(signature, expected);
@@ -169,7 +179,12 @@ export async function signedHeaders({
 }): Promise<Record<string, string>> {
   const signature = await signPayload(
     config.sharedSecret,
-    signingPayload({timestamp: now, method, path, bodyDigest: await sha256Hex(body)}),
+    signingPayload({
+      timestamp: now,
+      method,
+      path,
+      bodyDigest: await sha256Hex(body),
+    }),
   );
 
   return {
@@ -179,15 +194,29 @@ export async function signedHeaders({
   };
 }
 
-async function postToPjk<T>(config: PjkConfig, path: string, payload: unknown): Promise<T> {
+async function postToPjk<T>(
+  config: PjkConfig,
+  path: string,
+  payload: unknown,
+): Promise<T> {
   const body = JSON.stringify(payload);
   const headers = await signedHeaders({config, method: 'POST', path, body});
 
-  const response = await fetch(new URL(path, config.baseUrl), {method: 'POST', headers, body});
+  const response = await fetch(new URL(path, config.baseUrl), {
+    method: 'POST',
+    headers,
+    body,
+  });
 
   if (!response.ok) {
-    const detail = (await response.json().catch(() => null)) as {code?: string} | null;
-    throw new PjkError(`PJK refused ${path} with ${response.status}`, response.status, detail?.code);
+    const detail = (await response.json().catch(() => null)) as {
+      code?: string;
+    } | null;
+    throw new PjkError(
+      `PJK refused ${path} with ${response.status}`,
+      response.status,
+      detail?.code,
+    );
   }
 
   return (await response.json()) as T;
@@ -210,7 +239,9 @@ export async function requestSignInCode(
     throw new PjkError('That is not an Artist ID', 400, 'malformed_artist_id');
   }
 
-  return postToPjk<SignInChallenge>(config, '/next/phulhaar/sign-in/request', {artistId});
+  return postToPjk<SignInChallenge>(config, '/next/phulhaar/sign-in/request', {
+    artistId,
+  });
 }
 
 /** Hand PJK the code the artist typed, and get back a signed token describing them. */
@@ -218,5 +249,8 @@ export async function verifySignInCode(
   config: PjkConfig,
   {challengeId, code}: {challengeId: string; code: string},
 ): Promise<SignInResult> {
-  return postToPjk<SignInResult>(config, '/next/phulhaar/sign-in/verify', {challengeId, code});
+  return postToPjk<SignInResult>(config, '/next/phulhaar/sign-in/verify', {
+    challengeId,
+    code,
+  });
 }

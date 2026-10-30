@@ -13,8 +13,17 @@
  * Run it with `pnpm mock:pjk`. Nothing in here is a real secret or a real person.
  */
 
-import {createServer, type IncomingMessage, type ServerResponse} from 'node:http';
-import {generateKeyPairSync, createSign, randomUUID, randomInt} from 'node:crypto';
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from 'node:http';
+import {
+  generateKeyPairSync,
+  createSign,
+  randomUUID,
+  randomInt,
+} from 'node:crypto';
 
 const PORT = Number(process.env.PJK_MOCK_PORT ?? 4010);
 
@@ -23,20 +32,41 @@ const PORT = Number(process.env.PJK_MOCK_PORT ?? 4010);
  * that a fresh clone works with no configuration; it is not a secret and must never be used
  * anywhere real.
  */
-const SHARED_SECRET = process.env.PJK_SHARED_SECRET ?? 'mock-pjk-shared-secret-for-local-dev';
+const SHARED_SECRET =
+  process.env.PJK_SHARED_SECRET ?? 'mock-pjk-shared-secret-for-local-dev';
 
 const SIGNATURE_WINDOW_SECONDS = 300;
 
 /** The artists the mock knows about. Invented people, for local work only. */
 const ARTISTS = new Map<
   string,
-  {displayName: string; standing: 'active' | 'suspended'; profileVersion: number}
+  {
+    displayName: string;
+    standing: 'active' | 'suspended';
+    profileVersion: number;
+  }
 >([
-  ['AT000123', {displayName: 'Sita Devi', standing: 'active', profileVersion: 3}],
-  ['AT000124', {displayName: 'Ramesh Pattnaik', standing: 'active', profileVersion: 1}],
+  [
+    'AT000123',
+    {displayName: 'Sita Devi', standing: 'active', profileVersion: 3},
+  ],
+  [
+    'AT000124',
+    {displayName: 'Ramesh Pattnaik', standing: 'active', profileVersion: 1},
+  ],
   // Here so the studio's "your account is on hold" path can be exercised.
-  ['AT000125', {displayName: 'Anjali Rao', standing: 'suspended', profileVersion: 2}],
-  ['PT000001', {displayName: 'Chitrashala Partners', standing: 'active', profileVersion: 1}],
+  [
+    'AT000125',
+    {displayName: 'Anjali Rao', standing: 'suspended', profileVersion: 2},
+  ],
+  [
+    'PT000001',
+    {
+      displayName: 'Chitrashala Partners',
+      standing: 'active',
+      profileVersion: 1,
+    },
+  ],
 ]);
 
 /** Live challenges, by id. Cleared on restart, which is fine for a mock. */
@@ -52,7 +82,9 @@ const MAX_ATTEMPTS = 5;
  * A throwaway RSA key pair, made fresh each start-up. Phulhaar verifies the token with the public
  * half, fetched from this server's JWKS endpoint, exactly as it will verify PJK's in production.
  */
-const {privateKey, publicKey} = generateKeyPairSync('rsa', {modulusLength: 2048});
+const {privateKey, publicKey} = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+});
 const KEY_ID = 'mock-pjk-key-1';
 
 function base64url(input: Buffer | string): string {
@@ -65,7 +97,9 @@ function base64url(input: Buffer | string): string {
 
 /** An RS256 JWT, the same shape PJK must return. */
 function signToken(claims: Record<string, unknown>): string {
-  const header = base64url(JSON.stringify({alg: 'RS256', typ: 'JWT', kid: KEY_ID}));
+  const header = base64url(
+    JSON.stringify({alg: 'RS256', typ: 'JWT', kid: KEY_ID}),
+  );
   const now = Math.floor(Date.now() / 1000);
   const payload = base64url(
     JSON.stringify({
@@ -89,7 +123,11 @@ function signToken(claims: Record<string, unknown>): string {
 
 function jwks() {
   const jwk = publicKey.export({format: 'jwk'}) as {n: string; e: string};
-  return {keys: [{kty: 'RSA', alg: 'RS256', use: 'sig', kid: KEY_ID, n: jwk.n, e: jwk.e}]};
+  return {
+    keys: [
+      {kty: 'RSA', alg: 'RS256', use: 'sig', kid: KEY_ID, n: jwk.n, e: jwk.e},
+    ],
+  };
 }
 
 async function readBody(request: IncomingMessage): Promise<string> {
@@ -127,14 +165,25 @@ async function hmacHex(secret: string, payload: string): Promise<string> {
     false,
     ['sign'],
   );
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(payload),
+  );
 
-  return [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return [...new Uint8Array(signature)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 async function sha256Hex(body: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(body),
+  );
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -149,8 +198,10 @@ async function signatureIsGood(
   const signature = request.headers['x-phulhaar-signature'];
   const timestamp = Number(request.headers['x-phulhaar-timestamp']);
 
-  if (typeof signature !== 'string') return {ok: false, reason: 'signature header missing'};
-  if (!Number.isFinite(timestamp)) return {ok: false, reason: 'timestamp header missing'};
+  if (typeof signature !== 'string')
+    return {ok: false, reason: 'signature header missing'};
+  if (!Number.isFinite(timestamp))
+    return {ok: false, reason: 'timestamp header missing'};
 
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - timestamp) > SIGNATURE_WINDOW_SECONDS) {
@@ -162,12 +213,16 @@ async function signatureIsGood(
     `v1.${timestamp}.${request.method?.toUpperCase()}.${path}.${await sha256Hex(body)}`,
   );
 
-  if (expected !== signature) return {ok: false, reason: 'signature does not match'};
+  if (expected !== signature)
+    return {ok: false, reason: 'signature does not match'};
 
   return {ok: true};
 }
 
-async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+async function handle(
+  request: IncomingMessage,
+  response: ServerResponse,
+): Promise<void> {
   const path = new URL(request.url ?? '/', `http://localhost:${PORT}`).pathname;
 
   if (request.method === 'GET' && path === '/.well-known/jwks.json') {
@@ -199,7 +254,8 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   }
 
   if (path === '/next/phulhaar/sign-in/request') {
-    const artistId = typeof payload.artistId === 'string' ? payload.artistId : '';
+    const artistId =
+      typeof payload.artistId === 'string' ? payload.artistId : '';
     const known = ARTISTS.has(artistId);
     const challengeId = randomUUID();
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -214,16 +270,21 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     });
 
     if (known) {
-      console.log(`\n  one-time code for ${artistId}: ${code}  (challenge ${challengeId})\n`);
+      console.log(
+        `\n  one-time code for ${artistId}: ${code}  (challenge ${challengeId})\n`,
+      );
     } else {
-      console.log(`\n  no artist ${artistId || '(blank)'}; answering as though there were\n`);
+      console.log(
+        `\n  no artist ${artistId || '(blank)'}; answering as though there were\n`,
+      );
     }
 
     return send(response, 200, {challengeId});
   }
 
   if (path === '/next/phulhaar/sign-in/verify') {
-    const challengeId = typeof payload.challengeId === 'string' ? payload.challengeId : '';
+    const challengeId =
+      typeof payload.challengeId === 'string' ? payload.challengeId : '';
     const code = typeof payload.code === 'string' ? payload.code : '';
     const challenge = challenges.get(challengeId);
 
@@ -276,5 +337,7 @@ const server = createServer((request, response) => {
 server.listen(PORT, () => {
   console.log(`mock PJK listening on http://localhost:${PORT}`);
   console.log(`  artists: ${[...ARTISTS.keys()].join(', ')}`);
-  console.log('  codes are printed here instead of emailed; nothing survives a restart\n');
+  console.log(
+    '  codes are printed here instead of emailed; nothing survives a restart\n',
+  );
 });

@@ -26,13 +26,7 @@ const required = (what: string) =>
     .min(1, `${what} is empty`);
 
 /** Optional, but if present it must be a real value rather than an empty placeholder. */
-const optional = () =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .optional()
-    .catch(undefined);
+const optional = () => z.string().trim().min(1).optional().catch(undefined);
 
 const schema = z.object({
   // Hydrogen's session cookie. 32 characters is the shortest that is worth signing with.
@@ -95,7 +89,9 @@ export function parseEnv(raw: unknown): PhulhaarEnv {
 
   if (!result.success) {
     const problems = result.error.issues
-      .map((issue) => `  - ${issue.path.join('.') || '(root)'}: ${issue.message}`)
+      .map(
+        (issue) => `  - ${issue.path.join('.') || '(root)'}: ${issue.message}`,
+      )
       .join('\n');
 
     throw new Error(
@@ -115,7 +111,12 @@ export function parseEnv(raw: unknown): PhulhaarEnv {
  */
 export function requirePjkEnv(env: PhulhaarEnv) {
   const missing = (
-    ['PJK_BASE_URL', 'PJK_SHARED_SECRET', 'PJK_PUBLIC_KEY', 'PJK_WEBHOOK_SECRET'] as const
+    [
+      'PJK_BASE_URL',
+      'PJK_SHARED_SECRET',
+      'PJK_PUBLIC_KEY',
+      'PJK_WEBHOOK_SECRET',
+    ] as const
   ).filter((key) => !env[key]);
 
   if (missing.length > 0) {

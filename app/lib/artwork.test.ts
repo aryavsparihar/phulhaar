@@ -32,8 +32,12 @@ describe('orientationOf', () => {
 
   it('refuses a measurement that cannot be real', () => {
     expect(() => orientationOf({heightCm: 0, widthCm: 60})).toThrow(RangeError);
-    expect(() => orientationOf({heightCm: -5, widthCm: 60})).toThrow(RangeError);
-    expect(() => orientationOf({heightCm: Number.NaN, widthCm: 60})).toThrow(RangeError);
+    expect(() => orientationOf({heightCm: -5, widthCm: 60})).toThrow(
+      RangeError,
+    );
+    expect(() => orientationOf({heightCm: Number.NaN, widthCm: 60})).toThrow(
+      RangeError,
+    );
   });
 });
 
@@ -68,16 +72,24 @@ describe('toInches', () => {
 
 describe('formatDimensions', () => {
   it('reads like a gallery label', () => {
-    expect(formatDimensions({heightCm: 60, widthCm: 45})).toBe('60 × 45 cm (23½ × 17¾ in)');
+    expect(formatDimensions({heightCm: 60, widthCm: 45})).toBe(
+      '60 × 45 cm (23½ × 17¾ in)',
+    );
   });
 
   it('includes depth only when there is one', () => {
-    expect(formatDimensions({heightCm: 30, widthCm: 30, depthCm: 10})).toContain('30 × 30 × 10 cm');
-    expect(formatDimensions({heightCm: 30, widthCm: 30})).toBe('30 × 30 cm (11¾ × 11¾ in)');
+    expect(
+      formatDimensions({heightCm: 30, widthCm: 30, depthCm: 10}),
+    ).toContain('30 × 30 × 10 cm');
+    expect(formatDimensions({heightCm: 30, widthCm: 30})).toBe(
+      '30 × 30 cm (11¾ × 11¾ in)',
+    );
   });
 
   it('does not print a trailing zero on a whole number', () => {
-    expect(formatDimensions({heightCm: 45.5, widthCm: 30})).toContain('45.5 × 30 cm');
+    expect(formatDimensions({heightCm: 45.5, widthCm: 30})).toContain(
+      '45.5 × 30 cm',
+    );
   });
 });
 
@@ -98,17 +110,23 @@ describe('slugify', () => {
 describe('artworkHandle', () => {
   it('builds artist-title-year', () => {
     expect(
-      artworkHandle({artistName: 'Sita Devi', title: 'Monsoon Garden', year: 2025}),
+      artworkHandle({
+        artistName: 'Sita Devi',
+        title: 'Monsoon Garden',
+        year: 2025,
+      }),
     ).toBe('sita-devi-monsoon-garden-2025');
   });
 
   it('leaves the year off when the work is undated', () => {
-    expect(artworkHandle({artistName: 'Sita Devi', title: 'Monsoon Garden'})).toBe(
-      'sita-devi-monsoon-garden',
-    );
+    expect(
+      artworkHandle({artistName: 'Sita Devi', title: 'Monsoon Garden'}),
+    ).toBe('sita-devi-monsoon-garden');
   });
 
   it('falls back to a usable handle rather than an empty one', () => {
-    expect(artworkHandle({artistName: 'मधुबनी', title: 'मधुबनी', year: 2024})).toBe('artwork-2024');
+    expect(
+      artworkHandle({artistName: 'मधुबनी', title: 'मधुबनी', year: 2024}),
+    ).toBe('artwork-2024');
   });
 });

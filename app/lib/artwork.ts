@@ -50,12 +50,18 @@ const SQUARE_TOLERANCE = 0.01;
 
 function assertUsable(value: number, name: string): void {
   if (!Number.isFinite(value) || value <= 0) {
-    throw new RangeError(`${name} must be a positive number of centimetres, not ${value}`);
+    throw new RangeError(
+      `${name} must be a positive number of centimetres, not ${value}`,
+    );
   }
 }
 
 /** The longest of the measured sides, which is what the size band is read from. */
-export function longestSideCm({heightCm, widthCm, depthCm}: Dimensions): number {
+export function longestSideCm({
+  heightCm,
+  widthCm,
+  depthCm,
+}: Dimensions): number {
   assertUsable(heightCm, 'height');
   assertUsable(widthCm, 'width');
   if (depthCm !== undefined) assertUsable(depthCm, 'depth');
@@ -68,7 +74,8 @@ export function orientationOf({heightCm, widthCm}: Dimensions): Orientation {
   assertUsable(widthCm, 'width');
 
   const longer = Math.max(heightCm, widthCm);
-  if (Math.abs(heightCm - widthCm) <= longer * SQUARE_TOLERANCE) return 'square';
+  if (Math.abs(heightCm - widthCm) <= longer * SQUARE_TOLERANCE)
+    return 'square';
 
   return heightCm > widthCm ? 'portrait' : 'landscape';
 }
@@ -92,7 +99,8 @@ export function toInches(cm: number): number {
 /** "60 × 45 cm (23½ × 17¾ in)", the way a gallery label reads. */
 export function formatDimensions(dimensions: Dimensions): string {
   const {heightCm, widthCm, depthCm} = dimensions;
-  const sides = depthCm === undefined ? [heightCm, widthCm] : [heightCm, widthCm, depthCm];
+  const sides =
+    depthCm === undefined ? [heightCm, widthCm] : [heightCm, widthCm, depthCm];
 
   const cm = sides.map((side) => trimNumber(side)).join(' × ');
   const inches = sides.map((side) => formatInches(toInches(side))).join(' × ');
@@ -113,7 +121,9 @@ function formatInches(value: number): string {
 
 /** 45 rather than 45.0, and 45.5 kept as it is. */
 function trimNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(1)));
+  return Number.isInteger(value)
+    ? String(value)
+    : String(Number(value.toFixed(1)));
 }
 
 /**
@@ -137,7 +147,9 @@ export function artworkHandle({
   title: string;
   year?: number;
 }): string {
-  const parts = [slugify(artistName), slugify(title)].filter((part) => part.length > 0);
+  const parts = [slugify(artistName), slugify(title)].filter(
+    (part) => part.length > 0,
+  );
   if (parts.length === 0) parts.push('artwork');
   if (year !== undefined) parts.push(String(year));
 
@@ -146,11 +158,13 @@ export function artworkHandle({
 
 /** Lower case, accents stripped, anything that is not a letter or digit turned into one hyphen. */
 export function slugify(value: string): string {
-  return value
-    .normalize('NFKD')
-    // Combining marks, left behind once NFKD has split the accents off their letters.
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  return (
+    value
+      .normalize('NFKD')
+      // Combining marks, left behind once NFKD has split the accents off their letters.
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  );
 }

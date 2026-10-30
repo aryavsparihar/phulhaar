@@ -286,7 +286,8 @@ export const ARTIST_METAOBJECT = {
     {
       key: 'artist_id',
       name: 'Artist ID',
-      description: "The ID PJK issued, like AT000123. The join between the two systems.",
+      description:
+        'The ID PJK issued, like AT000123. The join between the two systems.',
       type: 'single_line_text_field',
       required: true,
       validations: [{name: 'regex', value: '^(AT|PT)\\d{6,}$'}],
@@ -294,7 +295,8 @@ export const ARTIST_METAOBJECT = {
     {
       key: 'display_name',
       name: 'Display name',
-      description: 'The name the artist wants shown, which is not necessarily their legal name.',
+      description:
+        'The name the artist wants shown, which is not necessarily their legal name.',
       type: 'single_line_text_field',
       required: true,
     },
@@ -328,21 +330,27 @@ export const ARTIST_METAOBJECT = {
       name: 'State',
       description: 'Used to group the artist directory.',
       type: 'metaobject_reference',
-      validations: [{name: 'metaobject_definition_type', value: 'phulhaar_state'}],
+      validations: [
+        {name: 'metaobject_definition_type', value: 'phulhaar_state'},
+      ],
     },
     {
       key: 'mediums',
       name: 'Mediums',
       description: 'What the artist works in, for their profile page.',
       type: 'list.metaobject_reference',
-      validations: [{name: 'metaobject_definition_type', value: 'phulhaar_medium'}],
+      validations: [
+        {name: 'metaobject_definition_type', value: 'phulhaar_medium'},
+      ],
     },
     {
       key: 'traditions',
       name: 'Traditions',
       description: 'The traditions the artist works in.',
       type: 'list.metaobject_reference',
-      validations: [{name: 'metaobject_definition_type', value: 'phulhaar_tradition'}],
+      validations: [
+        {name: 'metaobject_definition_type', value: 'phulhaar_tradition'},
+      ],
     },
     {
       key: 'exhibitions',
@@ -368,7 +376,7 @@ export const ARTIST_METAOBJECT = {
       key: 'standing',
       name: 'Standing',
       description:
-        'active or suspended, as PJK last reported. A suspended artist\'s works are hidden ' +
+        "active or suspended, as PJK last reported. A suspended artist's works are hidden " +
         'rather than deleted.',
       type: 'single_line_text_field',
       validations: [{name: 'choices', value: '["active","suspended"]'}],
@@ -397,14 +405,17 @@ export interface ProductMetafield extends FieldDefinition {
   filter?: boolean;
 }
 
-const reference = (type: string) => [{name: 'metaobject_definition_type', value: type}];
+const reference = (type: string) => [
+  {name: 'metaobject_definition_type', value: type},
+];
 
 export const PRODUCT_METAFIELDS: ProductMetafield[] = [
   // --- Basics -------------------------------------------------------------
   {
     key: 'artist',
     name: 'Artist',
-    description: 'The artist who made the work. Set when the work is created and never changed.',
+    description:
+      'The artist who made the work. Set when the work is created and never changed.',
     type: 'metaobject_reference',
     required: true,
     validations: reference('phulhaar_artist'),
@@ -414,7 +425,8 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
   {
     key: 'year',
     name: 'Year',
-    description: 'The year the work was finished. Left empty for an undated work.',
+    description:
+      'The year the work was finished. Left empty for an undated work.',
     type: 'number_integer',
     validations: [{name: 'min', value: '1800'}],
     editor: 'artist',
@@ -479,7 +491,7 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
     name: "Artist's note",
     description:
       "The artist's own words about this particular work, shown under the description in their " +
-      'voice rather than the gallery\'s.',
+      "voice rather than the gallery's.",
     type: 'multi_line_text_field',
     editor: 'artist',
   },
@@ -518,7 +530,9 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
       'portrait, landscape or square, worked out from the height and width. Not editable: an ' +
       'artist who sets this by hand will eventually contradict the measurements.',
     type: 'single_line_text_field',
-    validations: [{name: 'choices', value: '["portrait","landscape","square"]'}],
+    validations: [
+      {name: 'choices', value: '["portrait","landscape","square"]'},
+    ],
     editor: 'computed',
     filter: true,
   },
@@ -529,7 +543,9 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
       'small, medium, large or oversized, from the longest side. Stored rather than calculated ' +
       'because a filter can only read a stored value.',
     type: 'single_line_text_field',
-    validations: [{name: 'choices', value: '["small","medium","large","oversized"]'}],
+    validations: [
+      {name: 'choices', value: '["small","medium","large","oversized"]'},
+    ],
     editor: 'computed',
     filter: true,
   },
@@ -538,10 +554,13 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
   {
     key: 'rarity',
     name: 'Rarity',
-    description: 'Whether the work is unique, one of a numbered edition, or an open edition.',
+    description:
+      'Whether the work is unique, one of a numbered edition, or an open edition.',
     type: 'single_line_text_field',
     required: true,
-    validations: [{name: 'choices', value: '["original","limited_edition","open_edition"]'}],
+    validations: [
+      {name: 'choices', value: '["original","limited_edition","open_edition"]'},
+    ],
     editor: 'artist',
     filter: true,
   },
@@ -608,7 +627,9 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
       'rolled, stretched or crated. A buyer needs this before buying, because a rolled canvas ' +
       'has to be stretched at the other end.',
     type: 'single_line_text_field',
-    validations: [{name: 'choices', value: '["rolled","stretched","crated","boxed"]'}],
+    validations: [
+      {name: 'choices', value: '["rolled","stretched","crated","boxed"]'},
+    ],
     editor: 'artist',
   },
   {
@@ -621,7 +642,8 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
   {
     key: 'ships_from_state',
     name: 'Ships from (state)',
-    description: 'Where the work is sent from. Also what the "artist\'s state" filter reads.',
+    description:
+      'Where the work is sent from. Also what the "artist\'s state" filter reads.',
     type: 'metaobject_reference',
     validations: reference('phulhaar_state'),
     editor: 'artist',
@@ -630,7 +652,8 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
   {
     key: 'dispatch_days',
     name: 'Dispatch time (days)',
-    description: 'Working days between the order and the work leaving the artist.',
+    description:
+      'Working days between the order and the work leaving the artist.',
     type: 'number_integer',
     validations: [
       {name: 'min', value: '1'},
@@ -652,7 +675,8 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
     validations: [
       {
         name: 'choices',
-        value: '["available","reserved","sold","not_for_sale","price_on_request"]',
+        value:
+          '["available","reserved","sold","not_for_sale","price_on_request"]',
       },
     ],
     editor: 'staff',
@@ -677,15 +701,16 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
     key: 'review_status',
     name: 'Review status',
     description:
-      'Where the work is in the review. draft and in_review are the artist\'s side; ' +
-      'changes_requested, approved and archived are staff\'s. A live work that is edited goes ' +
+      "Where the work is in the review. draft and in_review are the artist's side; " +
+      "changes_requested, approved and archived are staff's. A live work that is edited goes " +
       'back to in_review while the live version stays as it was.',
     type: 'single_line_text_field',
     required: true,
     validations: [
       {
         name: 'choices',
-        value: '["draft","in_review","changes_requested","approved","archived"]',
+        value:
+          '["draft","in_review","changes_requested","approved","archived"]',
       },
     ],
     editor: 'staff',
@@ -702,7 +727,8 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
   {
     key: 'submitted_at',
     name: 'Submitted for review',
-    description: 'When the artist last submitted it, so the review queue can be ordered fairly.',
+    description:
+      'When the artist last submitted it, so the review queue can be ordered fairly.',
     type: 'date_time',
     editor: 'computed',
   },
@@ -710,7 +736,10 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
 
 /** Every metaobject definition the script manages, taxonomies and the artist alike. */
 export function allMetaobjectTypes(): string[] {
-  return [...TAXONOMIES.map((taxonomy) => taxonomy.type), ARTIST_METAOBJECT.type];
+  return [
+    ...TAXONOMIES.map((taxonomy) => taxonomy.type),
+    ARTIST_METAOBJECT.type,
+  ];
 }
 
 /** The metafield types Search & Discovery is able to build a storefront filter from. */

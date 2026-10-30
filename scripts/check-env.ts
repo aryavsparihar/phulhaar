@@ -32,7 +32,9 @@ const undocumented = [...known].filter((key) => !documented.has(key)).sort();
 const unused = [...documented].filter((key) => !known.has(key)).sort();
 
 if (undocumented.length === 0 && unused.length === 0) {
-  console.log(`Every one of the ${known.size} environment variables is documented.`);
+  console.log(
+    `Every one of the ${known.size} environment variables is documented.`,
+  );
   process.exit(0);
 }
 

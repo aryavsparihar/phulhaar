@@ -46,13 +46,18 @@ const tally = {created: 0, updated: 0, unchanged: 0};
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
-    console.error(`${name} is not set. Copy .env.example to .env and see docs/SETUP.md.`);
+    console.error(
+      `${name} is not set. Copy .env.example to .env and see docs/SETUP.md.`,
+    );
     process.exit(1);
   }
   return value;
 }
 
-let request: <T>(query: string, variables?: Record<string, unknown>) => Promise<T>;
+let request: <T>(
+  query: string,
+  variables?: Record<string, unknown>,
+) => Promise<T>;
 
 if (dryRun) {
   request = async () => {
@@ -63,7 +68,10 @@ if (dryRun) {
   const token = requireEnv('PRIVATE_ADMIN_API_TOKEN');
   const endpoint = `https://${domain}/admin/api/${ADMIN_API_VERSION}/graphql.json`;
 
-  request = async function adminRequest<T>(query: string, variables = {}): Promise<T> {
+  request = async function adminRequest<T>(
+    query: string,
+    variables = {},
+  ): Promise<T> {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -106,14 +114,22 @@ if (dryRun) {
  */
 function assertNoUserErrors(
   what: string,
-  result: {userErrors?: Array<{field?: string[] | null; message: string; code?: string}>},
+  result: {
+    userErrors?: Array<{
+      field?: string[] | null;
+      message: string;
+      code?: string;
+    }>;
+  },
 ): void {
   const errors = result.userErrors ?? [];
   if (errors.length === 0) return;
 
   console.error(`\nShopify refused ${what}:`);
   for (const error of errors) {
-    console.error(`  ${error.field?.join('.') ?? '(no field)'}: ${error.message}`);
+    console.error(
+      `  ${error.field?.join('.') ?? '(no field)'}: ${error.message}`,
+    );
   }
   process.exit(1);
 }
@@ -213,7 +229,12 @@ function taxonomyFields(taxonomy: TaxonomyDefinition): FieldDefinition[] {
 
 async function syncMetaobjectDefinition(
   existing: Map<string, ExistingMetaobject>,
-  definition: {type: string; name: string; description: string; fields: FieldDefinition[]},
+  definition: {
+    type: string;
+    name: string;
+    description: string;
+    fields: FieldDefinition[];
+  },
 ): Promise<void> {
   const current = existing.get(definition.type);
   const fieldDefinitions = definition.fields.map(metaobjectField);
@@ -238,7 +259,10 @@ async function syncMetaobjectDefinition(
       },
     });
 
-    assertNoUserErrors(`creating ${definition.type}`, result.metaobjectDefinitionCreate);
+    assertNoUserErrors(
+      `creating ${definition.type}`,
+      result.metaobjectDefinitionCreate,
+    );
     return;
   }
 
@@ -249,15 +273,19 @@ async function syncMetaobjectDefinition(
   const toUpdate = fieldDefinitions.filter((field) => known.has(field.key));
 
   const mismatched = definition.fields.filter((field) => {
-    const live = current.fieldDefinitions.find((candidate) => candidate.key === field.key);
+    const live = current.fieldDefinitions.find(
+      (candidate) => candidate.key === field.key,
+    );
     return live && live.type.name !== field.type;
   });
 
   for (const field of mismatched) {
-    const live = current.fieldDefinitions.find((candidate) => candidate.key === field.key)!;
+    const live = current.fieldDefinitions.find(
+      (candidate) => candidate.key === field.key,
+    )!;
     console.warn(
       `  ! ${definition.type}.${field.key} is ${live.type.name} at the store but ${field.type} ` +
-        'here. Shopify cannot change a field\'s type; this needs a new field and a migration.',
+        "here. Shopify cannot change a field's type; this needs a new field and a migration.",
     );
   }
 
@@ -292,7 +320,10 @@ async function syncMetaobjectDefinition(
     },
   });
 
-  assertNoUserErrors(`updating ${definition.type}`, result.metaobjectDefinitionUpdate);
+  assertNoUserErrors(
+    `updating ${definition.type}`,
+    result.metaobjectDefinitionUpdate,
+  );
 }
 
 /**
@@ -311,22 +342,26 @@ async function seedTaxonomy(taxonomy: TaxonomyDefinition): Promise<void> {
 
     const fields = [{key: 'name', value: entry.name}];
 
-    const result = await request<{metaobjectUpsert: {userErrors: Array<{message: string}>}}>(
-      UPSERT_METAOBJECT_ENTRY,
-      {
-        handle: {type: taxonomy.type, handle: entry.handle},
-        metaobject: {
-          fields,
-          capabilities: {publishable: {status: 'ACTIVE'}},
-        },
+    const result = await request<{
+      metaobjectUpsert: {userErrors: Array<{message: string}>};
+    }>(UPSERT_METAOBJECT_ENTRY, {
+      handle: {type: taxonomy.type, handle: entry.handle},
+      metaobject: {
+        fields,
+        capabilities: {publishable: {status: 'ACTIVE'}},
       },
-    );
+    });
 
-    assertNoUserErrors(`seeding ${taxonomy.type}/${entry.handle}`, result.metaobjectUpsert);
+    assertNoUserErrors(
+      `seeding ${taxonomy.type}/${entry.handle}`,
+      result.metaobjectUpsert,
+    );
   }
 
   const count = taxonomy.entries.length;
-  console.log(`  = ${taxonomy.type}: ${count} entr${count === 1 ? 'y' : 'ies'} present`);
+  console.log(
+    `  = ${taxonomy.type}: ${count} entr${count === 1 ? 'y' : 'ies'} present`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +400,9 @@ async function syncProductMetafields(): Promise<void> {
     : new Map(
         (
           await request<{
-            metafieldDefinitions: {nodes: Array<{id: string; key: string; type: {name: string}}>};
+            metafieldDefinitions: {
+              nodes: Array<{id: string; key: string; type: {name: string}}>;
+            };
           }>(EXISTING_METAFIELDS, {namespace: NAMESPACE})
         ).metafieldDefinitions.nodes.map((node) => [node.key, node]),
       );
@@ -406,14 +443,17 @@ async function syncProductMetafields(): Promise<void> {
         },
       });
 
-      assertNoUserErrors(`creating ${NAMESPACE}.${field.key}`, result.metafieldDefinitionCreate);
+      assertNoUserErrors(
+        `creating ${NAMESPACE}.${field.key}`,
+        result.metafieldDefinitionCreate,
+      );
       continue;
     }
 
     if (current.type.name !== field.type) {
       console.warn(
         `  ! ${NAMESPACE}.${field.key} is ${current.type.name} at the store but ${field.type} ` +
-          'here. Shopify cannot change a metafield\'s type once values exist; this needs a new ' +
+          "here. Shopify cannot change a metafield's type once values exist; this needs a new " +
           'key and a migration.',
       );
       tally.unchanged += 1;
@@ -439,7 +479,10 @@ async function syncProductMetafields(): Promise<void> {
       },
     });
 
-    assertNoUserErrors(`updating ${NAMESPACE}.${field.key}`, result.metafieldDefinitionUpdate);
+    assertNoUserErrors(
+      `updating ${NAMESPACE}.${field.key}`,
+      result.metafieldDefinitionUpdate,
+    );
   }
 
   // Reported, never deleted: the values under a definition go with it.
@@ -461,9 +504,13 @@ async function syncProductMetafields(): Promise<void> {
 
 async function main(): Promise<void> {
   if (dryRun) {
-    console.log('A dry run: nothing is sent to Shopify, and the store is assumed to be empty.\n');
+    console.log(
+      'A dry run: nothing is sent to Shopify, and the store is assumed to be empty.\n',
+    );
   } else {
-    console.log(`Setting up ${process.env.PUBLIC_STORE_DOMAIN} (Admin API ${ADMIN_API_VERSION})\n`);
+    console.log(
+      `Setting up ${process.env.PUBLIC_STORE_DOMAIN} (Admin API ${ADMIN_API_VERSION})\n`,
+    );
   }
 
   const existing = dryRun

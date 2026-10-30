@@ -40,18 +40,44 @@ describe('signingPayload', () => {
     const digest = 'abc';
     const base = {timestamp: 1_700_000_000, bodyDigest: digest};
 
-    const request = signingPayload({...base, method: 'POST', path: '/sign-in/request'});
-    const verify = signingPayload({...base, method: 'POST', path: '/sign-in/verify'});
-    const asGet = signingPayload({...base, method: 'GET', path: '/sign-in/request'});
+    const request = signingPayload({
+      ...base,
+      method: 'POST',
+      path: '/sign-in/request',
+    });
+    const verify = signingPayload({
+      ...base,
+      method: 'POST',
+      path: '/sign-in/verify',
+    });
+    const asGet = signingPayload({
+      ...base,
+      method: 'GET',
+      path: '/sign-in/request',
+    });
 
     expect(request).not.toBe(verify);
     expect(request).not.toBe(asGet);
-    expect(await signPayload(secret, request)).not.toBe(await signPayload(secret, verify));
+    expect(await signPayload(secret, request)).not.toBe(
+      await signPayload(secret, verify),
+    );
   });
 
   it('upper-cases the method, so the two sides cannot disagree over casing', () => {
-    expect(signingPayload({timestamp: 1, method: 'post', path: '/x', bodyDigest: 'd'})).toBe(
-      signingPayload({timestamp: 1, method: 'POST', path: '/x', bodyDigest: 'd'}),
+    expect(
+      signingPayload({
+        timestamp: 1,
+        method: 'post',
+        path: '/x',
+        bodyDigest: 'd',
+      }),
+    ).toBe(
+      signingPayload({
+        timestamp: 1,
+        method: 'POST',
+        path: '/x',
+        bodyDigest: 'd',
+      }),
     );
   });
 });
@@ -191,7 +217,9 @@ describe('verifySignedRequest', () => {
 describe('requestSignInCode', () => {
   it('refuses a malformed Artist ID without troubling PJK', async () => {
     // No fetch is stubbed, so a request reaching the network would fail differently.
-    await expect(requestSignInCode(config, 'not-an-id')).rejects.toThrow(PjkError);
+    await expect(requestSignInCode(config, 'not-an-id')).rejects.toThrow(
+      PjkError,
+    );
     await expect(requestSignInCode(config, 'not-an-id')).rejects.toMatchObject({
       status: 400,
       code: 'malformed_artist_id',
