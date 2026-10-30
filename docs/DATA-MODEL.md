@@ -81,7 +81,8 @@ the native variant weight. Everything else is a metafield:
   cent tolerance so a canvas measured at 60 × 60.5 cm is square rather than a portrait.
 - **`size_band`** — from the longest side including depth: small under 45 cm, medium 45–90, large
   90–150, oversized 150 and over. A work exactly on a boundary goes into the upper band, so a
-  buyer who looks at every band sees every work once. **These four bands still need confirming.**
+  buyer who looks at every band sees every work once. The four bands were confirmed on 31 October 2026. Changing one later means recomputing the band on every live work, so it is a migration
+  rather than an edit.
 - **`colours`** — extracted from the main image at upload. Staff can correct it, because a
   photograph of a painting under warm light often reads wrongly.
 

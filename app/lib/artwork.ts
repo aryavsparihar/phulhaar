@@ -28,9 +28,9 @@ export type SizeBand = 'small' | 'medium' | 'large' | 'oversized';
  * cm across is medium and one exactly 90 cm is large; without that rule a work on a boundary
  * would belong to two bands and the filter counts would not add up.
  *
- * These four are a starting point taken from the brief and still to be confirmed. Changing them
- * means recomputing the band on every live work, so `scripts/shopify-setup.ts` keeps the choice
- * in one place.
+ * These four were confirmed on 31 October 2026 and are settled. They stay defined in this one
+ * place because changing them later means recomputing the band on every live work, which is a
+ * migration rather than an edit.
  */
 export const SIZE_BANDS: ReadonlyArray<{band: SizeBand; underCm: number}> = [
   {band: 'small', underCm: 45},

@@ -290,3 +290,7 @@ Settled already:
   `docs/PHASES.md`.
 - **Domain:** `phulhaargallery.com` is the main one, with `phulhaar.com`, `phulhaar.in` and
   `phulhaargallery.in` also held.
+- **Size bands**, confirmed 31 October 2026, by the longest side including depth: small under
+  45 cm, medium 45–90, large 90–150, oversized 150 and over. A work exactly on a boundary goes
+  into the upper band. Changing a band later means recomputing it on every live work, so treat it
+  as a migration rather than an edit.

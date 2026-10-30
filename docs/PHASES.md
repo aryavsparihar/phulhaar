@@ -156,9 +156,9 @@ photographs for Phase 2**, and **the PJK endpoints for Phase 4**. Both are worth
 ## What is settled and what is not
 
 **Settled:** Hydrogen on Oxygen; Shopify as the system of record; no database of our own yet;
-`phulhaargallery.com`; a minimal first release; the data model.
+`phulhaargallery.com`; a minimal first release; the data model; the size bands (small under 45 cm,
+medium 45–90, large 90–150, oversized 150 and over, by the longest side).
 
 **Not settled, and listed in `docs/DECISIONS.md` section 5:** commission and who sets the price;
-GST; shipping and returns; who reviews; international buyers; prints and editions; "make an offer";
-and whether the size bands (small under 45 cm, medium 45–90, large 90–150, oversized over 150) are
-right.
+GST; shipping and returns; who reviews; international buyers; prints and editions; "make an
+offer".
