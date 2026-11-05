@@ -277,6 +277,34 @@ being exact:
 5. Answer 200 with what was done, so PJK's own deletion log can record it:
    `{"ok": true, "deleted": {"artworks": 12, "retainedForOrders": 3}}`
 
+## 3a. Staff sign-in, for the admin panel
+
+Anyone PJK lets sign in with a `pjk.co.in` address can sign in to Phulhaar's `/admin`. Phulhaar
+refuses any other domain before calling PJK; PJK is the one that decides who is staff.
+
+- `POST /next/phulhaar/staff/sign-in/request` with `{"email": "name@pjk.co.in"}`. Signed like §1.
+  Answers `{"challengeId": "..."}` whether or not the address is staff, so the
+  answer does not reveal who works at PJK.
+- `POST /next/phulhaar/staff/sign-in/verify` with `{"challengeId": "...", "code": "123456"}`.
+  Answers `{"token": "<JWT>"}`.
+
+The token is verified like §2's (RS256, `iss` `https://pjk.co.in`, `aud` `phulhaar`, short
+`exp`), with these claims instead of the artist's:
+
+```json
+{
+  "sub": "staff-id",
+  "email": "name@pjk.co.in",
+  "name": "Full name",
+  "role": "admin",
+  "kind": "staff"
+}
+```
+
+`role` is `admin` or `editor`. Editors can create and edit; only admins can delete. Phulhaar
+rejects a staff token at artist sign-in and an artist token at staff sign-in, and rejects any
+staff email outside `pjk.co.in` even if PJK signed it.
+
 ## 4. Sales, for payouts
 
 **Payouts are made by PJK**, which holds the bank details. Phulhaar tells it what was sold.

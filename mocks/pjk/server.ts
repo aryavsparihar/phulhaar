@@ -69,6 +69,20 @@ const ARTISTS = new Map<
   ],
 ]);
 
+/**
+ * PJK staff who may also run Phulhaar's admin. On PJK this is "anyone who can sign in to PJK's
+ * admin"; Phulhaar additionally refuses any address outside pjk.co.in.
+ */
+const STAFF = new Map<string, {name: string; role: 'admin' | 'editor'}>([
+  ['admin@pjk.co.in', {name: 'Gallery Admin', role: 'admin'}],
+  ['curator@pjk.co.in', {name: 'Gallery Curator', role: 'editor'}],
+]);
+
+const staffChallenges = new Map<
+  string,
+  {email: string | null; code: string; expiresAt: number; attempts: number}
+>();
+
 /** Live challenges, by id. Cleared on restart, which is fine for a mock. */
 const challenges = new Map<
   string,
@@ -317,6 +331,58 @@ async function handle(
     });
   }
 
+  if (path === '/next/phulhaar/staff/sign-in/request') {
+    const email =
+      typeof payload.email === 'string'
+        ? payload.email.trim().toLowerCase()
+        : '';
+    const known = STAFF.has(email);
+    const challengeId = randomUUID();
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    staffChallenges.set(challengeId, {
+      email: known ? email : null,
+      code,
+      expiresAt: Date.now() + CHALLENGE_TTL_MS,
+      attempts: 0,
+    });
+    console.log(
+      known
+        ? `\n  staff code for ${email}: ${code}  (challenge ${challengeId})\n`
+        : `\n  no PJK staff ${email || '(blank)'}; answering as though there were\n`,
+    );
+    return send(response, 200, {challengeId});
+  }
+
+  if (path === '/next/phulhaar/staff/sign-in/verify') {
+    const challengeId =
+      typeof payload.challengeId === 'string' ? payload.challengeId : '';
+    const code = typeof payload.code === 'string' ? payload.code : '';
+    const challenge = staffChallenges.get(challengeId);
+    if (!challenge || challenge.expiresAt < Date.now()) {
+      staffChallenges.delete(challengeId);
+      return send(response, 400, {code: 'challenge_expired'});
+    }
+    challenge.attempts += 1;
+    if (challenge.attempts > MAX_ATTEMPTS) {
+      staffChallenges.delete(challengeId);
+      return send(response, 429, {code: 'too_many_attempts'});
+    }
+    if (code !== challenge.code || challenge.email === null) {
+      return send(response, 400, {code: 'bad_code'});
+    }
+    const staff = STAFF.get(challenge.email)!;
+    staffChallenges.delete(challengeId);
+    return send(response, 200, {
+      token: signToken({
+        sub: challenge.email,
+        email: challenge.email,
+        name: staff.name,
+        role: staff.role,
+        kind: 'staff',
+      }),
+    });
+  }
+
   return send(response, 404, {code: 'no_such_endpoint'});
 }
 
@@ -336,6 +402,7 @@ const server = createServer((request, response) => {
 
 server.listen(PORT, () => {
   console.log(`mock PJK listening on http://localhost:${PORT}`);
+  console.log(`  staff: ${[...STAFF.keys()].join(', ')}`);
   console.log(`  artists: ${[...ARTISTS.keys()].join(', ')}`);
   console.log(
     '  codes are printed here instead of emailed; nothing survives a restart\n',
