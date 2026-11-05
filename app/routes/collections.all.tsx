@@ -1,4 +1,4 @@
-import {Form, Link, useLoaderData, useSubmit} from 'react-router';
+import {Form, Link, redirect, useLoaderData, useSubmit} from 'react-router';
 import {getPaginationVariables} from '@shopify/hydrogen';
 import type {Route} from './+types/collections.all';
 import {ArtworkGrid} from '~/components/ArtworkCard';
@@ -8,7 +8,7 @@ import {
   sortFrom,
   type ArtworkCardData,
 } from '~/lib/catalogue';
-import {CATEGORIES, TRADITIONS} from '~/lib/gallery';
+import {popularTags} from '~/lib/search-index.server';
 
 export const meta: Route.MetaFunction = ({data}) => [
   {
@@ -20,7 +20,10 @@ export const meta: Route.MetaFunction = ({data}) => [
 
 export async function loader({context, request}: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const q = url.searchParams.get('q')?.trim().slice(0, 80) || '';
+  // Free text belongs to the gallery's own search, which reads descriptions and forgives typos.
+  const text = url.searchParams.get('q')?.trim();
+  if (text) throw redirect(`/search?q=${encodeURIComponent(text)}`);
+  const q = url.searchParams.get('tag')?.trim().slice(0, 40) || '';
   const sort = sortFrom(url);
   const {sortKey, reverse} = SORTS[sort];
   const pagination = getPaginationVariables(request, {pageBy: 24});
@@ -28,14 +31,18 @@ export async function loader({context, request}: Route.LoaderArgs) {
   const {products} = await context.storefront.query(CATALOGUE_QUERY, {
     variables: {
       ...pagination,
-      query: q || null,
-      // RELEVANCE is the only sort that makes sense once someone has typed something.
-      sortKey: q && sort === 'featured' ? 'RELEVANCE' : sortKey,
+      query: q ? `tag:"${q.replace(/"/g, '')}"` : null,
+      sortKey,
       reverse,
     },
   });
 
+  const tags = await popularTags(context.storefront).catch(
+    () => [] as string[],
+  );
+
   return {
+    tags,
     products: products.nodes as ArtworkCardData[],
     pageInfo: products.pageInfo,
     q,
@@ -43,17 +50,16 @@ export async function loader({context, request}: Route.LoaderArgs) {
   };
 }
 
-const QUICK_FILTERS = [
-  ...CATEGORIES,
-  ...TRADITIONS.slice(0, 5).map((tradition) => tradition.name),
-];
-
 export default function Catalogue() {
-  const {products, pageInfo, q, sort} = useLoaderData<typeof loader>();
+  const {products, pageInfo, q, sort, tags} = useLoaderData<typeof loader>();
   const submit = useSubmit();
 
   const href = (params: Record<string, string>) => {
-    const search = new URLSearchParams({...(q ? {q} : {}), sort, ...params});
+    const search = new URLSearchParams({
+      ...(q ? {tag: q} : {}),
+      sort,
+      ...params,
+    });
     for (const [key, value] of [...search.entries()]) {
       if (!value || (key === 'sort' && value === 'featured'))
         search.delete(key);
@@ -75,15 +81,15 @@ export default function Catalogue() {
 
       <div className="toolbar">
         <div className="chips" role="list">
-          <Link className={`chip${q ? '' : ' active'}`} to={href({q: ''})}>
+          <Link className={`chip${q ? '' : ' active'}`} to={href({tag: ''})}>
             Everything
           </Link>
-          {QUICK_FILTERS.map((filter) => (
+          {tags.map((filter) => (
             <Link
               key={filter}
               role="listitem"
               className={`chip${q.toLowerCase() === filter.toLowerCase() ? ' active' : ''}`}
-              to={href({q: filter})}
+              to={href({tag: filter})}
             >
               {filter}
             </Link>
@@ -93,7 +99,7 @@ export default function Catalogue() {
           method="get"
           onChange={(event) => void submit(event.currentTarget)}
         >
-          {q ? <input type="hidden" name="q" value={q} /> : null}
+          {q ? <input type="hidden" name="tag" value={q} /> : null}
           <label className="visually-hidden" htmlFor="sort">
             Sort by
           </label>

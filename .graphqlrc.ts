@@ -14,6 +14,9 @@ const graphqlConfig: IGraphQLConfig = {
         './*.{ts,tsx,js,jsx}',
         './app/**/*.{ts,tsx,js,jsx}',
         '!./app/graphql/**/*.{ts,tsx,js,jsx}',
+        // Admin API documents: a different schema, which Hydrogen's codegen does not ship.
+        '!./app/lib/admin-api.server.ts',
+        '!./app/lib/catalogue-admin.server.ts',
       ],
     },
 

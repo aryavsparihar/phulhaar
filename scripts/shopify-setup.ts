@@ -22,6 +22,7 @@
 import {
   ADMIN_API_VERSION,
   ARTIST_METAOBJECT,
+  GALLERY_METAOBJECT,
   NAMESPACE,
   PRODUCT_METAFIELDS,
   TAXONOMIES,
@@ -540,6 +541,9 @@ async function main(): Promise<void> {
 
   console.log('\nArtists');
   await syncMetaobjectDefinition(existing, ARTIST_METAOBJECT);
+
+  console.log('\nGallery settings');
+  await syncMetaobjectDefinition(existing, GALLERY_METAOBJECT);
 
   console.log('\nArtwork fields');
   await syncProductMetafields();

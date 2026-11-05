@@ -414,6 +414,171 @@ export type FooterQuery = {
   >;
 };
 
+export type GallerySettingsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type GallerySettingsQuery = {
+  metaobject?: StorefrontAPI.Maybe<{
+    address?: StorefrontAPI.Maybe<Pick<StorefrontAPI.MetaobjectField, 'value'>>;
+    hours?: StorefrontAPI.Maybe<Pick<StorefrontAPI.MetaobjectField, 'value'>>;
+    mapUrl?: StorefrontAPI.Maybe<Pick<StorefrontAPI.MetaobjectField, 'value'>>;
+    phone?: StorefrontAPI.Maybe<Pick<StorefrontAPI.MetaobjectField, 'value'>>;
+    announcement?: StorefrontAPI.Maybe<
+      Pick<StorefrontAPI.MetaobjectField, 'value'>
+    >;
+  }>;
+};
+
+export type SearchCorpusQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+  after?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
+}>;
+
+export type SearchCorpusQuery = {
+  products: {
+    nodes: Array<
+      Pick<
+        StorefrontAPI.Product,
+        | 'description'
+        | 'tags'
+        | 'id'
+        | 'handle'
+        | 'title'
+        | 'vendor'
+        | 'productType'
+        | 'availableForSale'
+      > & {
+        traditions?: StorefrontAPI.Maybe<{
+          references?: StorefrontAPI.Maybe<{
+            nodes: Array<{
+              field?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+            }>;
+          }>;
+        }>;
+        styles?: StorefrontAPI.Maybe<{
+          references?: StorefrontAPI.Maybe<{
+            nodes: Array<{
+              field?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+            }>;
+          }>;
+        }>;
+        subjects?: StorefrontAPI.Maybe<{
+          references?: StorefrontAPI.Maybe<{
+            nodes: Array<{
+              field?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+            }>;
+          }>;
+        }>;
+        colours?: StorefrontAPI.Maybe<{
+          references?: StorefrontAPI.Maybe<{
+            nodes: Array<{
+              field?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+            }>;
+          }>;
+        }>;
+        surface?: StorefrontAPI.Maybe<{
+          reference?: StorefrontAPI.Maybe<{
+            field?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.MetaobjectField, 'value'>
+            >;
+          }>;
+        }>;
+        category?: StorefrontAPI.Maybe<{
+          reference?: StorefrontAPI.Maybe<{
+            field?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.MetaobjectField, 'value'>
+            >;
+          }>;
+        }>;
+        note?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+        city?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+        featuredImage?: StorefrontAPI.Maybe<
+          Pick<
+            StorefrontAPI.Image,
+            'id' | 'altText' | 'url' | 'width' | 'height'
+          >
+        >;
+        priceRange: {
+          minVariantPrice: Pick<
+            StorefrontAPI.MoneyV2,
+            'amount' | 'currencyCode'
+          >;
+        };
+        artist?: StorefrontAPI.Maybe<{
+          reference?: StorefrontAPI.Maybe<
+            Pick<StorefrontAPI.Metaobject, 'handle'> & {
+              displayName?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+              artistId?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+            }
+          >;
+        }>;
+        year?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+        heightCm?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+        widthCm?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+        depthCm?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+        mediums?: StorefrontAPI.Maybe<{
+          references?: StorefrontAPI.Maybe<{
+            nodes: Array<{
+              field?: StorefrontAPI.Maybe<
+                Pick<StorefrontAPI.MetaobjectField, 'value'>
+              >;
+            }>;
+          }>;
+        }>;
+      }
+    >;
+    pageInfo: Pick<StorefrontAPI.PageInfo, 'hasNextPage' | 'endCursor'>;
+  };
+};
+
+export type SearchArtistsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type SearchArtistsQuery = {
+  metaobjects: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'handle'> & {
+        displayName?: StorefrontAPI.Maybe<
+          Pick<StorefrontAPI.MetaobjectField, 'value'>
+        >;
+        city?: StorefrontAPI.Maybe<
+          Pick<StorefrontAPI.MetaobjectField, 'value'>
+        >;
+        biography?: StorefrontAPI.Maybe<
+          Pick<StorefrontAPI.MetaobjectField, 'value'>
+        >;
+        statement?: StorefrontAPI.Maybe<
+          Pick<StorefrontAPI.MetaobjectField, 'value'>
+        >;
+        state?: StorefrontAPI.Maybe<{
+          reference?: StorefrontAPI.Maybe<{
+            field?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.MetaobjectField, 'value'>
+            >;
+          }>;
+        }>;
+      }
+    >;
+  };
+};
+
 export type HomeArtworksQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
@@ -1263,224 +1428,6 @@ export type RelatedArtworksQuery = {
   };
 };
 
-export type SearchProductFragment = {__typename: 'Product'} & Pick<
-  StorefrontAPI.Product,
-  'handle' | 'id' | 'publishedAt' | 'title' | 'trackingParameters' | 'vendor'
-> & {
-    selectedOrFirstAvailableVariant?: StorefrontAPI.Maybe<
-      Pick<StorefrontAPI.ProductVariant, 'id'> & {
-        image?: StorefrontAPI.Maybe<
-          Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
-        >;
-        price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
-        compareAtPrice?: StorefrontAPI.Maybe<
-          Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>
-        >;
-        selectedOptions: Array<
-          Pick<StorefrontAPI.SelectedOption, 'name' | 'value'>
-        >;
-        product: Pick<StorefrontAPI.Product, 'handle' | 'title'>;
-      }
-    >;
-  };
-
-export type SearchPageFragment = {__typename: 'Page'} & Pick<
-  StorefrontAPI.Page,
-  'handle' | 'id' | 'title' | 'trackingParameters'
->;
-
-export type SearchArticleFragment = {__typename: 'Article'} & Pick<
-  StorefrontAPI.Article,
-  'handle' | 'id' | 'title' | 'trackingParameters'
->;
-
-export type PageInfoFragmentFragment = Pick<
-  StorefrontAPI.PageInfo,
-  'hasNextPage' | 'hasPreviousPage' | 'startCursor' | 'endCursor'
->;
-
-export type RegularSearchQueryVariables = StorefrontAPI.Exact<{
-  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
-  endCursor?: StorefrontAPI.InputMaybe<
-    StorefrontAPI.Scalars['String']['input']
-  >;
-  first?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Int']['input']>;
-  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
-  last?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Int']['input']>;
-  term: StorefrontAPI.Scalars['String']['input'];
-  startCursor?: StorefrontAPI.InputMaybe<
-    StorefrontAPI.Scalars['String']['input']
-  >;
-}>;
-
-export type RegularSearchQuery = {
-  articles: {
-    nodes: Array<
-      {__typename: 'Article'} & Pick<
-        StorefrontAPI.Article,
-        'handle' | 'id' | 'title' | 'trackingParameters'
-      >
-    >;
-  };
-  pages: {
-    nodes: Array<
-      {__typename: 'Page'} & Pick<
-        StorefrontAPI.Page,
-        'handle' | 'id' | 'title' | 'trackingParameters'
-      >
-    >;
-  };
-  products: {
-    nodes: Array<
-      {__typename: 'Product'} & Pick<
-        StorefrontAPI.Product,
-        | 'handle'
-        | 'id'
-        | 'publishedAt'
-        | 'title'
-        | 'trackingParameters'
-        | 'vendor'
-      > & {
-          selectedOrFirstAvailableVariant?: StorefrontAPI.Maybe<
-            Pick<StorefrontAPI.ProductVariant, 'id'> & {
-              image?: StorefrontAPI.Maybe<
-                Pick<
-                  StorefrontAPI.Image,
-                  'url' | 'altText' | 'width' | 'height'
-                >
-              >;
-              price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
-              compareAtPrice?: StorefrontAPI.Maybe<
-                Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>
-              >;
-              selectedOptions: Array<
-                Pick<StorefrontAPI.SelectedOption, 'name' | 'value'>
-              >;
-              product: Pick<StorefrontAPI.Product, 'handle' | 'title'>;
-            }
-          >;
-        }
-    >;
-    pageInfo: Pick<
-      StorefrontAPI.PageInfo,
-      'hasNextPage' | 'hasPreviousPage' | 'startCursor' | 'endCursor'
-    >;
-  };
-};
-
-export type PredictiveArticleFragment = {__typename: 'Article'} & Pick<
-  StorefrontAPI.Article,
-  'id' | 'title' | 'handle' | 'trackingParameters'
-> & {
-    blog: Pick<StorefrontAPI.Blog, 'handle'>;
-    image?: StorefrontAPI.Maybe<
-      Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
-    >;
-  };
-
-export type PredictiveCollectionFragment = {__typename: 'Collection'} & Pick<
-  StorefrontAPI.Collection,
-  'id' | 'title' | 'handle' | 'trackingParameters'
-> & {
-    image?: StorefrontAPI.Maybe<
-      Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
-    >;
-  };
-
-export type PredictivePageFragment = {__typename: 'Page'} & Pick<
-  StorefrontAPI.Page,
-  'id' | 'title' | 'handle' | 'trackingParameters'
->;
-
-export type PredictiveProductFragment = {__typename: 'Product'} & Pick<
-  StorefrontAPI.Product,
-  'id' | 'title' | 'handle' | 'trackingParameters'
-> & {
-    selectedOrFirstAvailableVariant?: StorefrontAPI.Maybe<
-      Pick<StorefrontAPI.ProductVariant, 'id'> & {
-        image?: StorefrontAPI.Maybe<
-          Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
-        >;
-        price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
-      }
-    >;
-  };
-
-export type PredictiveQueryFragment = {
-  __typename: 'SearchQuerySuggestion';
-} & Pick<
-  StorefrontAPI.SearchQuerySuggestion,
-  'text' | 'styledText' | 'trackingParameters'
->;
-
-export type PredictiveSearchQueryVariables = StorefrontAPI.Exact<{
-  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
-  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
-  limit: StorefrontAPI.Scalars['Int']['input'];
-  limitScope: StorefrontAPI.PredictiveSearchLimitScope;
-  term: StorefrontAPI.Scalars['String']['input'];
-  types?: StorefrontAPI.InputMaybe<
-    | Array<StorefrontAPI.PredictiveSearchType>
-    | StorefrontAPI.PredictiveSearchType
-  >;
-}>;
-
-export type PredictiveSearchQuery = {
-  predictiveSearch?: StorefrontAPI.Maybe<{
-    articles: Array<
-      {__typename: 'Article'} & Pick<
-        StorefrontAPI.Article,
-        'id' | 'title' | 'handle' | 'trackingParameters'
-      > & {
-          blog: Pick<StorefrontAPI.Blog, 'handle'>;
-          image?: StorefrontAPI.Maybe<
-            Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
-          >;
-        }
-    >;
-    collections: Array<
-      {__typename: 'Collection'} & Pick<
-        StorefrontAPI.Collection,
-        'id' | 'title' | 'handle' | 'trackingParameters'
-      > & {
-          image?: StorefrontAPI.Maybe<
-            Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
-          >;
-        }
-    >;
-    pages: Array<
-      {__typename: 'Page'} & Pick<
-        StorefrontAPI.Page,
-        'id' | 'title' | 'handle' | 'trackingParameters'
-      >
-    >;
-    products: Array<
-      {__typename: 'Product'} & Pick<
-        StorefrontAPI.Product,
-        'id' | 'title' | 'handle' | 'trackingParameters'
-      > & {
-          selectedOrFirstAvailableVariant?: StorefrontAPI.Maybe<
-            Pick<StorefrontAPI.ProductVariant, 'id'> & {
-              image?: StorefrontAPI.Maybe<
-                Pick<
-                  StorefrontAPI.Image,
-                  'url' | 'altText' | 'width' | 'height'
-                >
-              >;
-              price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
-            }
-          >;
-        }
-    >;
-    queries: Array<
-      {__typename: 'SearchQuerySuggestion'} & Pick<
-        StorefrontAPI.SearchQuerySuggestion,
-        'text' | 'styledText' | 'trackingParameters'
-      >
-    >;
-  }>;
-};
-
 export type StudioWorksQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
@@ -1550,6 +1497,18 @@ interface GeneratedQueryTypes {
     return: FooterQuery;
     variables: FooterQueryVariables;
   };
+  '#graphql\n  query GallerySettings($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    metaobject(handle: {type: "phulhaar_gallery", handle: "settings"}) {\n      address: field(key: "address") { value }\n      hours: field(key: "hours") { value }\n      mapUrl: field(key: "map_url") { value }\n      phone: field(key: "phone") { value }\n      announcement: field(key: "announcement") { value }\n    }\n  }\n': {
+    return: GallerySettingsQuery;
+    variables: GallerySettingsQueryVariables;
+  };
+  '#graphql\n  query SearchCorpus($country: CountryCode, $language: LanguageCode, $after: String)\n  @inContext(country: $country, language: $language) {\n    products(first: 250, after: $after) {\n      nodes {\n        ...ArtworkCard\n        description\n        tags\n        traditions: metafield(namespace: "phulhaar", key: "traditions") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        styles: metafield(namespace: "phulhaar", key: "styles") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        subjects: metafield(namespace: "phulhaar", key: "subjects") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        colours: metafield(namespace: "phulhaar", key: "colours") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        surface: metafield(namespace: "phulhaar", key: "surface") { reference { ... on Metaobject { field(key: "name") { value } } } }\n        category: metafield(namespace: "phulhaar", key: "category") { reference { ... on Metaobject { field(key: "name") { value } } } }\n        note: metafield(namespace: "phulhaar", key: "artist_note") { value }\n        city: metafield(namespace: "phulhaar", key: "ships_from_city") { value }\n      }\n      pageInfo { hasNextPage endCursor }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
+    return: SearchCorpusQuery;
+    variables: SearchCorpusQueryVariables;
+  };
+  '#graphql\n  query SearchArtists($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    metaobjects(type: "phulhaar_artist", first: 250) {\n      nodes {\n        handle\n        displayName: field(key: "display_name") { value }\n        city: field(key: "city") { value }\n        biography: field(key: "biography") { value }\n        statement: field(key: "statement") { value }\n        state: field(key: "state") { reference { ... on Metaobject { field(key: "name") { value } } } }\n      }\n    }\n  }\n': {
+    return: SearchArtistsQuery;
+    variables: SearchArtistsQueryVariables;
+  };
   '#graphql\n  query HomeArtworks(\n    $country: CountryCode\n    $language: LanguageCode\n    $first: Int!\n    $sortKey: ProductSortKeys!\n    $reverse: Boolean!\n  ) @inContext(country: $country, language: $language) {\n    products(first: $first, sortKey: $sortKey, reverse: $reverse) {\n      nodes {\n        ...ArtworkCard\n      }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
     return: HomeArtworksQuery;
     variables: HomeArtworksQueryVariables;
@@ -1609,14 +1568,6 @@ interface GeneratedQueryTypes {
   '#graphql\n  query RelatedArtworks($country: CountryCode, $language: LanguageCode, $query: String)\n  @inContext(country: $country, language: $language) {\n    products(first: 5, query: $query, sortKey: BEST_SELLING) {\n      nodes { ...ArtworkCard }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
     return: RelatedArtworksQuery;
     variables: RelatedArtworksQueryVariables;
-  };
-  '#graphql\n  query RegularSearch(\n    $country: CountryCode\n    $endCursor: String\n    $first: Int\n    $language: LanguageCode\n    $last: Int\n    $term: String!\n    $startCursor: String\n  ) @inContext(country: $country, language: $language) {\n    articles: search(\n      query: $term,\n      types: [ARTICLE],\n      first: $first,\n    ) {\n      nodes {\n        ...on Article {\n          ...SearchArticle\n        }\n      }\n    }\n    pages: search(\n      query: $term,\n      types: [PAGE],\n      first: $first,\n    ) {\n      nodes {\n        ...on Page {\n          ...SearchPage\n        }\n      }\n    }\n    products: search(\n      after: $endCursor,\n      before: $startCursor,\n      first: $first,\n      last: $last,\n      query: $term,\n      sortKey: RELEVANCE,\n      types: [PRODUCT],\n      unavailableProducts: HIDE,\n    ) {\n      nodes {\n        ...on Product {\n          ...SearchProduct\n        }\n      }\n      pageInfo {\n        ...PageInfoFragment\n      }\n    }\n  }\n  #graphql\n  fragment SearchProduct on Product {\n    __typename\n    handle\n    id\n    publishedAt\n    title\n    trackingParameters\n    vendor\n    selectedOrFirstAvailableVariant(\n      selectedOptions: []\n      ignoreUnknownOptions: true\n      caseInsensitiveMatch: true\n    ) {\n      id\n      image {\n        url\n        altText\n        width\n        height\n      }\n      price {\n        amount\n        currencyCode\n      }\n      compareAtPrice {\n        amount\n        currencyCode\n      }\n      selectedOptions {\n        name\n        value\n      }\n      product {\n        handle\n        title\n      }\n    }\n  }\n\n  #graphql\n  fragment SearchPage on Page {\n     __typename\n     handle\n    id\n    title\n    trackingParameters\n  }\n\n  #graphql\n  fragment SearchArticle on Article {\n    __typename\n    handle\n    id\n    title\n    trackingParameters\n  }\n\n  #graphql\n  fragment PageInfoFragment on PageInfo {\n    hasNextPage\n    hasPreviousPage\n    startCursor\n    endCursor\n  }\n\n': {
-    return: RegularSearchQuery;
-    variables: RegularSearchQueryVariables;
-  };
-  '#graphql\n  query PredictiveSearch(\n    $country: CountryCode\n    $language: LanguageCode\n    $limit: Int!\n    $limitScope: PredictiveSearchLimitScope!\n    $term: String!\n    $types: [PredictiveSearchType!]\n  ) @inContext(country: $country, language: $language) {\n    predictiveSearch(\n      limit: $limit,\n      limitScope: $limitScope,\n      query: $term,\n      types: $types,\n    ) {\n      articles {\n        ...PredictiveArticle\n      }\n      collections {\n        ...PredictiveCollection\n      }\n      pages {\n        ...PredictivePage\n      }\n      products {\n        ...PredictiveProduct\n      }\n      queries {\n        ...PredictiveQuery\n      }\n    }\n  }\n  #graphql\n  fragment PredictiveArticle on Article {\n    __typename\n    id\n    title\n    handle\n    blog {\n      handle\n    }\n    image {\n      url\n      altText\n      width\n      height\n    }\n    trackingParameters\n  }\n\n  #graphql\n  fragment PredictiveCollection on Collection {\n    __typename\n    id\n    title\n    handle\n    image {\n      url\n      altText\n      width\n      height\n    }\n    trackingParameters\n  }\n\n  #graphql\n  fragment PredictivePage on Page {\n    __typename\n    id\n    title\n    handle\n    trackingParameters\n  }\n\n  #graphql\n  fragment PredictiveProduct on Product {\n    __typename\n    id\n    title\n    handle\n    trackingParameters\n    selectedOrFirstAvailableVariant(\n      selectedOptions: []\n      ignoreUnknownOptions: true\n      caseInsensitiveMatch: true\n    ) {\n      id\n      image {\n        url\n        altText\n        width\n        height\n      }\n      price {\n        amount\n        currencyCode\n      }\n    }\n  }\n\n  #graphql\n  fragment PredictiveQuery on SearchQuerySuggestion {\n    __typename\n    text\n    styledText\n    trackingParameters\n  }\n\n': {
-    return: PredictiveSearchQuery;
-    variables: PredictiveSearchQueryVariables;
   };
   '#graphql\n  query StudioWorks($country: CountryCode, $language: LanguageCode, $query: String)\n  @inContext(country: $country, language: $language) {\n    products(first: 100, query: $query, sortKey: CREATED_AT, reverse: true) {\n      nodes { ...ArtworkCard }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
     return: StudioWorksQuery;

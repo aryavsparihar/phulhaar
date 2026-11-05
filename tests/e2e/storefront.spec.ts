@@ -56,7 +56,7 @@ test('robots.txt is served, so the catalogue can be indexed deliberately', async
 for (const path of [
   '/collections/all',
   '/artists',
-  '/traditions',
+  '/search',
   '/visit',
   '/for-artists',
 ]) {
@@ -89,4 +89,33 @@ test('a real Artist ID gets as far as the code', async ({page}) => {
   await page.getByLabel('Artist ID').fill('AT000123');
   await page.getByRole('button', {name: 'Email me a code'}).click();
   await expect(page.getByLabel('One-time code')).toBeVisible();
+});
+
+test('the admin sends a visitor who is not signed in to staff sign-in', async ({
+  page,
+}) => {
+  await page.goto('/admin/artworks');
+  await expect(page).toHaveURL(/\/admin\/sign-in\?next=/);
+  await expect(page.getByLabel('PJK email address')).toBeVisible();
+});
+
+test('admin sign-in refuses an address outside pjk.co.in', async ({page}) => {
+  await page.goto('/admin/sign-in');
+  await page.getByLabel('PJK email address').fill('someone@gmail.com');
+  await page.getByRole('button', {name: 'Email me a code'}).click();
+  await expect(page.getByRole('alert')).toContainText('pjk.co.in');
+});
+
+test('a PJK staff address gets as far as the code', async ({page}) => {
+  await page.goto('/admin/sign-in');
+  await page.getByLabel('PJK email address').fill('admin@pjk.co.in');
+  await page.getByRole('button', {name: 'Email me a code'}).click();
+  await expect(page.getByLabel('One-time code')).toBeVisible();
+});
+
+test('the search API answers with JSON', async ({request}) => {
+  const response = await request.get('/api/search?q=hoodie');
+  expect(response.status()).toBe(200);
+  const body = await response.json();
+  expect(Array.isArray(body.works)).toBe(true);
 });

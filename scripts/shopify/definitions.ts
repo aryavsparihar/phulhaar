@@ -392,6 +392,52 @@ export const ARTIST_METAOBJECT = {
   ] satisfies FieldDefinition[],
 };
 
+/**
+ * The gallery's own details, one entry with the handle `settings`, edited in Phulhaar's admin so
+ * that nothing about the gallery is hard-coded or left as a placeholder on the site.
+ */
+export const GALLERY_METAOBJECT = {
+  type: 'phulhaar_gallery',
+  name: 'Gallery settings',
+  description:
+    "The gallery's address, hours and contact details, shown on the Visit page. One entry, " +
+    'with the handle "settings", edited from /admin/settings.',
+  fields: [
+    {
+      key: 'address',
+      name: 'Address',
+      description: 'One line per line of the address.',
+      type: 'multi_line_text_field',
+    },
+    {
+      key: 'hours',
+      name: 'Opening hours',
+      description:
+        'One line per day or range, such as "Tuesday to Sunday, 11 am to 7 pm".',
+      type: 'multi_line_text_field',
+    },
+    {
+      key: 'map_url',
+      name: 'Map link',
+      description: 'A link to the gallery on a map.',
+      type: 'url',
+    },
+    {
+      key: 'phone',
+      name: 'Phone',
+      description: "The gallery's public telephone number, if it has one.",
+      type: 'single_line_text_field',
+    },
+    {
+      key: 'announcement',
+      name: 'Announcement',
+      description:
+        'The line in the bar at the top of every page. Leave empty for none.',
+      type: 'single_line_text_field',
+    },
+  ] satisfies FieldDefinition[],
+};
+
 // ---------------------------------------------------------------------------
 // Product metafields: the artwork itself
 // ---------------------------------------------------------------------------

@@ -117,7 +117,23 @@ export default function Studio() {
           </p>
         </div>
       ) : (
-        <ArtworkGrid products={works} />
+        <>
+          <ArtworkGrid products={works} />
+          <h3 style={{marginTop: '2.5rem'}}>Tags on your works</h3>
+          <ul className="studio-tags">
+            {works.map((work) => (
+              <li key={work.id}>
+                <em>{work.title}</em>{' '}
+                <Link
+                  className="link-arrow"
+                  to={`/studio/works/${work.id.split('/').pop()}`}
+                >
+                  Edit tags
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <p className="muted" style={{marginTop: '3rem', fontSize: '1rem'}}>

@@ -1,8 +1,9 @@
-import {Link, useLoaderData} from 'react-router';
+import {Form, Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/_index';
 import {ArtworkGrid} from '~/components/ArtworkCard';
 import {ARTWORK_CARD_FRAGMENT, type ArtworkCardData} from '~/lib/catalogue';
-import {CATEGORIES, GALLERY, TRADITIONS} from '~/lib/gallery';
+import {GALLERY} from '~/lib/gallery';
+import {popularTags} from '~/lib/search-index.server';
 
 export const meta: Route.MetaFunction = () => [
   {title: 'Phulhaar Gallery — original work by Indian artists'},
@@ -21,14 +22,17 @@ export async function loader({context}: Route.LoaderArgs) {
     }),
   ]);
 
+  const tags = await popularTags(storefront, 16).catch(() => [] as string[]);
+
   return {
+    tags,
     latest: latest.products.nodes as ArtworkCardData[],
     featured: featured.products.nodes as ArtworkCardData[],
   };
 }
 
 export default function Homepage() {
-  const {latest, featured} = useLoaderData<typeof loader>();
+  const {latest, featured, tags} = useLoaderData<typeof loader>();
 
   return (
     <>
@@ -63,17 +67,6 @@ export default function Homepage() {
         </div>
       </section>
 
-      <div className="opening">
-        <div className="opening-inner">
-          <span>
-            The gallery opens on <strong>{GALLERY.openingLabel}</strong>
-          </span>
-          <Link className="link-arrow" to="/visit">
-            Plan a visit
-          </Link>
-        </div>
-      </div>
-
       {featured.length > 0 ? (
         <section className="section">
           <div className="wrap">
@@ -92,28 +85,38 @@ export default function Homepage() {
       ) : null}
 
       <section className="section section-tint">
-        <div className="wrap">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">The living traditions</p>
-              <h2>Browse by tradition</h2>
+        <div className="wrap search-feature">
+          <p className="eyebrow">Find a work</p>
+          <h2>Remember a colour, a creature, a word? That is enough.</h2>
+          <Form
+            method="get"
+            action="/search"
+            className="search-big"
+            role="search"
+          >
+            <input
+              type="search"
+              name="q"
+              placeholder="the blue one with the peacock"
+              aria-label="Search the gallery"
+            />
+            <button className="btn" type="submit">
+              Search
+            </button>
+          </Form>
+          {tags.length ? (
+            <div className="chips" style={{justifyContent: 'center'}}>
+              {tags.map((tag) => (
+                <Link
+                  key={tag}
+                  className="chip"
+                  to={`/collections/all?tag=${encodeURIComponent(tag)}`}
+                >
+                  {tag}
+                </Link>
+              ))}
             </div>
-            <Link className="link-arrow" to="/traditions">
-              All traditions
-            </Link>
-          </div>
-          <div className="tiles">
-            {TRADITIONS.map((tradition) => (
-              <Link
-                key={tradition.name}
-                className="tile"
-                to={`/collections/all?q=${encodeURIComponent(tradition.name)}`}
-              >
-                <span className="tile-name">{tradition.name}</span>
-                <span className="tile-note">{tradition.region}</span>
-              </Link>
-            ))}
-          </div>
+          ) : null}
         </div>
       </section>
 
@@ -129,20 +132,6 @@ export default function Homepage() {
             </Link>
           </div>
           <ArtworkGrid products={latest} eager={0} />
-          <div
-            className="chips"
-            style={{marginTop: '2.5rem', justifyContent: 'center'}}
-          >
-            {CATEGORIES.map((category) => (
-              <Link
-                key={category}
-                className="chip"
-                to={`/collections/all?q=${encodeURIComponent(category)}`}
-              >
-                {category}
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 

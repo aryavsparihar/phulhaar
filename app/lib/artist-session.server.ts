@@ -98,11 +98,15 @@ async function keyFromJwks(baseUrl: string, kid: string | undefined) {
   return crypto.subtle.importKey('jwk', jwk, RS256, false, ['verify']);
 }
 
-/** Verify PJK's token and return the artist it describes, or throw. */
-export async function verifyArtistToken(
+/**
+ * Verify any token PJK signs for Phulhaar — signature, issuer, audience, expiry — and return its
+ * claims. What the claims must then say (an active artist, a pjk.co.in staff address) is for the
+ * caller to check.
+ */
+export async function verifyPjkToken<T>(
   token: string,
   config: PjkConfig,
-): Promise<ArtistClaims> {
+): Promise<T> {
   const parts = token.split('.');
   if (parts.length !== 3)
     throw new PjkError('Malformed token', 401, 'bad_token');
@@ -126,7 +130,7 @@ export async function verifyArtistToken(
     throw new PjkError('Token signature does not verify', 401, 'bad_signature');
 
   const claims = decodeJson<
-    ArtistClaims & {iss?: string; aud?: string | string[]; exp?: number}
+    T & {iss?: string; aud?: string | string[]; exp?: number}
   >(payloadPart);
   const now = Math.floor(Date.now() / 1000);
   const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
@@ -137,10 +141,25 @@ export async function verifyArtistToken(
     throw new PjkError('Wrong audience', 401, 'bad_token');
   if (!claims.exp || claims.exp < now)
     throw new PjkError('Token expired', 401, 'expired');
+
+  return claims;
+}
+
+/** Verify PJK's token and return the artist it describes, or throw. */
+export async function verifyArtistToken(
+  token: string,
+  config: PjkConfig,
+): Promise<ArtistClaims> {
+  const claims = await verifyPjkToken<ArtistClaims & {kind?: string}>(
+    token,
+    config,
+  );
+  if (claims.kind === 'staff' || !claims.artistId) {
+    throw new PjkError('Not an artist token', 401, 'bad_token');
+  }
   if (claims.standing !== 'active') {
     throw new PjkError('This artist is not active on PJK', 403, 'suspended');
   }
-
   return claims;
 }
 
@@ -159,7 +178,9 @@ export function messageFor(error: unknown): string {
     case 'suspended':
       return 'Your PJK account is not active at the moment. Please contact PAT and J.K. Co.';
     case 'not_configured':
-      return 'Artist sign-in is not switched on yet. Please try again later.';
+      return 'Sign-in is not switched on yet. Please try again later.';
+    case 'not_pjk_staff':
+      return 'Only pjk.co.in addresses can sign in to the Phulhaar admin.';
     default:
       return 'We could not reach PJK just now. Please try again in a minute.';
   }
