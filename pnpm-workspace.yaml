@@ -1,0 +1,34 @@
+# pnpm refuses to run a dependency's install scripts unless it is named here. A postinstall script
+# runs with full access to the machine, so each one is listed deliberately, with the reason it
+# cannot be avoided.
+allowBuilds:
+  # Downloads the esbuild binary for this platform. Vite cannot bundle without it.
+  esbuild: true
+  # Builds the native Rust resolver that eslint-plugin-import uses to follow TypeScript paths.
+  unrs-resolver: true
+  # The Cloudflare Workers runtime MiniOxygen runs the app in locally. It is the same runtime
+  # Oxygen uses in production, which is the point of developing against it.
+  workerd: true
+
+# Refuse a dependency published in the last week. A compromised release is usually found and
+# pulled within days, and nothing here is urgent enough to take that risk.
+minimumReleaseAge: 10080
+
+# Patched versions forced into the dependency tree.
+#
+# Each of these is a transitive dependency of a development tool -- the local dev server
+# (@shopify/mini-oxygen, which bundles miniflare) or the codegen tool -- that Shopify has not yet
+# updated. None of them ships: `pnpm audit --prod` is clean, which is the check CI gates on.
+#
+# Every override below stays inside the same major version, so nothing is being asked to work
+# against an API it was not written for. Cross-major surgery on a worker-runtime emulator is how
+# you get a dev server that fails in ways nobody can explain, so the remaining advisories in that
+# tree are reported rather than forced (.github/workflows/security.yml).
+overrides:
+  # miniflare pins 8.18.0; the fix for the DoS in permessage-deflate is in 8.21.0.
+  ws: ^8.22.0
+  # The codegen tool's copy is 4.17.23; 4.18.1 carries the prototype-pollution fix.
+  lodash: ^4.18.1
+  # mini-oxygen's own copy only. miniflare's undici 5 line is left alone deliberately: moving it
+  # to 7 would be a three-major jump through a runtime emulator.
+  undici@>=7: ^7.30.1

@@ -1,0 +1,33 @@
+node_modules
+/.cache
+/build
+/dist
+/public/build
+/.mf
+.shopify
+.react-router
+
+# Secrets. Only the two files with no real values in them are committed: .env.example, which
+# documents every variable, and .env.e2e, which the test suite runs against.
+.env
+.env.*
+!.env.example
+!.env.e2e
+
+# Test output
+/playwright-report
+/test-results
+/coverage
+
+# Local scratch and editor noise
+.DS_Store
+*.log
+
+# AI tooling is never committed (see docs/CONTRIBUTING notes in README.md)
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/
+
+# TypeScript incremental build state
+*.tsbuildinfo

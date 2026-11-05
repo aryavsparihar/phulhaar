@@ -1,0 +1,34 @@
+# gitleaks configuration.
+#
+# The default rules, in full, plus one narrow exemption.
+#
+# The exemption exists because gitleaks reads the whole history, and the string below was
+# committed to docs/PJK-INTEGRATION.md before anyone noticed it looked like a credential. Removing
+# it from the working tree is not enough: the commit that introduced it is still in the history
+# the scanner walks, and will be for as long as this branch exists.
+#
+# It is not a credential. It is the header of an illustrative JSON Web Token in the specification
+# for PJK's artist sign-in — `{"alg":"RS256","typ":"JWT","kid":"pjk-2026-10"}`, base64url-encoded
+# and truncated. The only RSA key anywhere in this repository is the throwaway one the mock PJK
+# generates at start-up and discards when it stops. The document now describes the token's three
+# parts by name instead.
+#
+# The exemption is the one literal string, not the rule and not the file. Any other JWT-shaped
+# value, in that document or anywhere else, still fails the scan — which is the point, since the
+# next one might be real.
+#
+# It can be deleted once this branch's history no longer contains the string, which means either
+# rewriting the branch before it merges or, after merging, accepting that it is in main's history
+# for good.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "The illustrative JWT header in the PJK specification. Not a credential; see above."
+# Match against the matched text rather than the parsed secret, so this is pinned to the exact
+# bytes that were committed.
+regexTarget = "match"
+regexes = [
+  '''eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InBqay0yMDI2LTEwIn0''',
+]
