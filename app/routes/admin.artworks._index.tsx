@@ -1,7 +1,8 @@
 import {Form, Link, useLoaderData, useSearchParams} from 'react-router';
 import type {Route} from './+types/admin.artworks._index';
 import {parseEnv} from '~/lib/env.server';
-import {adminClient, failure, numericId} from '~/lib/admin-api.server';
+import {adminClient, failure} from '~/lib/admin-api.server';
+import {numericId} from '~/lib/ids';
 import {listArtworks, type ArtworkRow} from '~/lib/catalogue-admin.server';
 import {requireStaff} from '~/lib/staff-session.server';
 import {ErrorList} from '~/components/admin/FieldInput';

@@ -80,6 +80,16 @@ export interface ParsedFields {
  * Read a submitted form against the definitions: lists into JSON arrays, booleans into
  * "true"/"false", everything checked for required, choices, minimums and patterns.
  */
+/**
+ * The regex validations in the definitions, written out rather than built with `new RegExp`, so
+ * nothing ever compiles a pattern at run time. Shopify enforces every definition's validations
+ * when it saves, so a pattern missing here is still checked there; this only gives the editor a
+ * friendlier message first.
+ */
+export const PATTERNS: Record<string, RegExp> = {
+  '^(AT|PT)\\d{6,}$': /^(AT|PT)\d{6,}$/,
+};
+
 export function parseFields(form: FormData, fields: FieldDef[]): ParsedFields {
   const values: Record<string, string> = {};
   const cleared: string[] = [];
@@ -137,7 +147,8 @@ export function parseFields(form: FormData, fields: FieldDef[]): ParsedFields {
       errors[field.key] = 'Enter a full web address, starting https://';
     }
     const pattern = field.validations?.find((v) => v.name === 'regex')?.value;
-    if (pattern && !new RegExp(pattern).test(value)) {
+    const check = pattern ? PATTERNS[pattern] : undefined;
+    if (check && !check.test(value)) {
       errors[field.key] = `${field.name} is not in the expected form`;
     }
 

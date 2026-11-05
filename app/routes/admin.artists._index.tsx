@@ -1,7 +1,8 @@
 import {Form, Link, useLoaderData, useSearchParams} from 'react-router';
 import type {Route} from './+types/admin.artists._index';
 import {parseEnv} from '~/lib/env.server';
-import {adminClient, failure, numericId} from '~/lib/admin-api.server';
+import {adminClient, failure} from '~/lib/admin-api.server';
+import {numericId} from '~/lib/ids';
 import {
   listMetaobjects,
   type MetaobjectDetail,

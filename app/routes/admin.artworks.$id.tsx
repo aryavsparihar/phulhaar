@@ -195,16 +195,26 @@ function textToHtml(text: string) {
     .join('');
 }
 
+const ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+};
+
+/** Back to the plain text the form edits. React escapes it again when it fills the textarea. */
 function htmlToText(html: string) {
-  return html
+  let text = html
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .trim();
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
+  // Strip until nothing is left to strip, so a tag split by another ("<<p>p>") cannot survive.
+  for (let previous = ''; previous !== text;) {
+    previous = text;
+    text = text.replace(/<[^>]*>?/g, '');
+  }
+  // One pass over every entity, so "&amp;lt;" becomes "&lt;" and not "<".
+  return text.replace(/&(?:amp|lt|gt|quot|#39);/g, (m) => ENTITIES[m]).trim();
 }
 
 export default function EditArtwork() {

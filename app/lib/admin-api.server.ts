@@ -235,7 +235,4 @@ export function failure(error: unknown): {message: string; detail: string[]} {
   };
 }
 
-/** Numeric ids in URLs, full GIDs for Shopify. */
-export const gid = (type: 'Product' | 'Metaobject', id: string) =>
-  id.startsWith('gid://') ? id : `gid://shopify/${type}/${id}`;
-export const numericId = (value: string) => value.split('/').pop() ?? value;
+export {gid, numericId} from './ids';
