@@ -254,3 +254,42 @@ export async function verifySignInCode(
     code,
   });
 }
+
+/** What PJK's token says about a member of PJK staff signing in to Phulhaar's admin. */
+export interface StaffClaims {
+  email: string;
+  name: string;
+  role: 'admin' | 'editor';
+  kind: 'staff';
+}
+
+/**
+ * Ask PJK to email a code to a member of its staff. As with artists, PJK answers with a challenge
+ * whether or not the address belongs to anyone, so this cannot be used to find staff addresses.
+ */
+export async function requestStaffCode(
+  config: PjkConfig,
+  email: string,
+): Promise<SignInChallenge> {
+  return postToPjk<SignInChallenge>(
+    config,
+    '/next/phulhaar/staff/sign-in/request',
+    {
+      email,
+    },
+  );
+}
+
+export async function verifyStaffCode(
+  config: PjkConfig,
+  {challengeId, code}: {challengeId: string; code: string},
+): Promise<SignInResult> {
+  return postToPjk<SignInResult>(
+    config,
+    '/next/phulhaar/staff/sign-in/verify',
+    {
+      challengeId,
+      code,
+    },
+  );
+}

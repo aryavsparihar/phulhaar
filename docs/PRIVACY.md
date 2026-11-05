@@ -113,6 +113,10 @@ from PJK and is not editable in Phulhaar.
 A signed cookie holding **only the Artist ID, the profile version, and when it was issued.** No
 name, no token, nothing from PJK. HttpOnly, Secure, SameSite=Lax, 30 days.
 
+Gallery staff signing in to `/admin` are the exception. Their PJK email, name and role are held in
+the same signed cookie for at most 12 hours, so the panel can show who is signed in, and are
+never written anywhere else.
+
 ### Payouts
 
 **PJK pays artists**, because PJK holds the bank details. Phulhaar tells PJK what sold — the work,

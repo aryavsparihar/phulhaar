@@ -14,6 +14,7 @@ import {
 import type {Route} from './+types/root';
 import favicon from '~/assets/favicon.svg';
 import {parseEnv} from '~/lib/env.server';
+import {gallerySettings} from '~/lib/gallery-settings.server';
 import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
 import {PageLayout} from './components/PageLayout';
@@ -64,9 +65,11 @@ export const meta: Route.MetaFunction = () => [
 export async function loader({context}: Route.LoaderArgs) {
   const {storefront, env, cart} = context;
   const config = parseEnv(env);
+  const settings = await gallerySettings(storefront);
 
   return {
     cart: cart.get(),
+    settings,
     enquiryEmail: config.PHULHAAR_ENQUIRY_EMAIL ?? 'hello@phulhaargallery.com',
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     shop: getShopAnalytics({
@@ -118,7 +121,11 @@ export default function App() {
       shop={data.shop}
       consent={data.consent}
     >
-      <PageLayout cart={data.cart} enquiryEmail={data.enquiryEmail}>
+      <PageLayout
+        cart={data.cart}
+        enquiryEmail={data.enquiryEmail}
+        announcement={data.settings.announcement}
+      >
         <Outlet />
       </PageLayout>
     </Analytics.Provider>
