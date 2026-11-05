@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
   Form,
   Link,
@@ -224,7 +224,7 @@ export default function EditArtwork() {
   const busy = navigation.state === 'submitting';
   const fieldErrors = result?.fieldErrors ?? {};
   const values = artwork?.metafields ?? {};
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<File[]>([]);
   const saved =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('saved');
@@ -326,13 +326,16 @@ export default function EditArtwork() {
                   multiple
                   onChange={(event) => {
                     const files = [...(event.target.files ?? [])];
-                    setPreviews(files.map((file) => URL.createObjectURL(file)));
+                    setPreviews(files);
                   }}
                 />
                 {previews.length ? (
                   <div className="media-grid">
-                    {previews.map((src) => (
-                      <img key={src} src={src} alt="" className="media-new" />
+                    {previews.map((file) => (
+                      <FilePreview
+                        key={`${file.name}-${file.size}-${file.lastModified}`}
+                        file={file}
+                      />
                     ))}
                   </div>
                 ) : null}
@@ -536,4 +539,34 @@ function Text({
       </small>
     </div>
   );
+}
+
+/**
+ * A chosen photograph, drawn onto a canvas. Nothing from the file is ever put into the page as a
+ * URL or markup, so there is nothing to escape.
+ */
+function FilePreview({file}: {file: File}) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let cancelled = false;
+    createImageBitmap(file)
+      .then((bitmap) => {
+        const element = canvas.current;
+        if (cancelled || !element) return bitmap.close();
+        const scale = Math.min(1, 320 / Math.max(bitmap.width, bitmap.height));
+        element.width = Math.round(bitmap.width * scale);
+        element.height = Math.round(bitmap.height * scale);
+        element
+          .getContext('2d')
+          ?.drawImage(bitmap, 0, 0, element.width, element.height);
+        bitmap.close();
+      })
+      .catch(() => {
+        // Not an image the browser can read; the upload itself will say so.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
+  return <canvas ref={canvas} className="media-new" aria-label={file.name} />;
 }
