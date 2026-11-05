@@ -77,8 +77,18 @@ export async function action({request, context}: Route.ActionArgs) {
   const headers = cartId ? cart.setCartId(result.cart.id) : new Headers();
   const {cart: cartResult, errors, warnings} = result;
 
+  // "Buy now" asks for `__checkout`: straight on to Shopify's checkout (where Razorpay takes the
+  // payment) once the line is in. Anything else must be a path on this site, so the cart cannot
+  // be used to bounce a visitor to somebody else's page.
   const redirectTo = formData.get('redirectTo') ?? null;
-  if (typeof redirectTo === 'string') {
+  if (redirectTo === '__checkout' && cartResult?.checkoutUrl) {
+    status = 303;
+    headers.set('Location', cartResult.checkoutUrl);
+  } else if (
+    typeof redirectTo === 'string' &&
+    redirectTo.startsWith('/') &&
+    !redirectTo.startsWith('//')
+  ) {
     status = 303;
     headers.set('Location', redirectTo);
   }

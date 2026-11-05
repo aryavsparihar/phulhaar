@@ -1,114 +1,151 @@
+import {Form, Link, useLoaderData, useSubmit} from 'react-router';
+import {getPaginationVariables} from '@shopify/hydrogen';
 import type {Route} from './+types/collections.all';
-import {useLoaderData} from 'react-router';
-import {getPaginationVariables, Image, Money} from '@shopify/hydrogen';
-import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
-import {ProductItem} from '~/components/ProductItem';
-import type {CollectionItemFragment} from 'storefrontapi.generated';
+import {ArtworkGrid} from '~/components/ArtworkCard';
+import {
+  ARTWORK_CARD_FRAGMENT,
+  SORTS,
+  sortFrom,
+  type ArtworkCardData,
+} from '~/lib/catalogue';
+import {CATEGORIES, TRADITIONS} from '~/lib/gallery';
 
-export const meta: Route.MetaFunction = () => {
-  return [{title: `Hydrogen | Products`}];
-};
+export const meta: Route.MetaFunction = ({data}) => [
+  {
+    title: data?.q
+      ? `${data.q} — Phulhaar Gallery`
+      : 'All artworks — Phulhaar Gallery',
+  },
+];
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+export async function loader({context, request}: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const q = url.searchParams.get('q')?.trim().slice(0, 80) || '';
+  const sort = sortFrom(url);
+  const {sortKey, reverse} = SORTS[sort];
+  const pagination = getPaginationVariables(request, {pageBy: 24});
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context, request}: Route.LoaderArgs) {
-  const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 8,
+  const {products} = await context.storefront.query(CATALOGUE_QUERY, {
+    variables: {
+      ...pagination,
+      query: q || null,
+      // RELEVANCE is the only sort that makes sense once someone has typed something.
+      sortKey: q && sort === 'featured' ? 'RELEVANCE' : sortKey,
+      reverse,
+    },
   });
 
-  const [{products}] = await Promise.all([
-    storefront.query(CATALOG_QUERY, {
-      variables: {...paginationVariables},
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-  return {products};
+  return {
+    products: products.nodes as ArtworkCardData[],
+    pageInfo: products.pageInfo,
+    q,
+    sort,
+  };
 }
 
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  return {};
-}
+const QUICK_FILTERS = [
+  ...CATEGORIES,
+  ...TRADITIONS.slice(0, 5).map((tradition) => tradition.name),
+];
 
-export default function Collection() {
-  const {products} = useLoaderData<typeof loader>();
+export default function Catalogue() {
+  const {products, pageInfo, q, sort} = useLoaderData<typeof loader>();
+  const submit = useSubmit();
+
+  const href = (params: Record<string, string>) => {
+    const search = new URLSearchParams({...(q ? {q} : {}), sort, ...params});
+    for (const [key, value] of [...search.entries()]) {
+      if (!value || (key === 'sort' && value === 'featured'))
+        search.delete(key);
+    }
+    const query = search.toString();
+    return `/collections/all${query ? `?${query}` : ''}`;
+  };
 
   return (
-    <div className="collection">
-      <h1>Products</h1>
-      <PaginatedResourceSection<CollectionItemFragment>
-        connection={products}
-        resourcesClassName="products-grid"
-      >
-        {({node: product, index}) => (
-          <ProductItem
-            key={product.id}
-            product={product}
-            loading={index < 8 ? 'eager' : undefined}
-          />
-        )}
-      </PaginatedResourceSection>
+    <div className="wrap">
+      <header className="page-head">
+        <p className="eyebrow">The collection</p>
+        <h1>{q ? q : 'All artworks'}</h1>
+        <p className="lede">
+          Original work, each piece one of a kind unless it says otherwise.
+          Prices are in rupees.
+        </p>
+      </header>
+
+      <div className="toolbar">
+        <div className="chips" role="list">
+          <Link className={`chip${q ? '' : ' active'}`} to={href({q: ''})}>
+            Everything
+          </Link>
+          {QUICK_FILTERS.map((filter) => (
+            <Link
+              key={filter}
+              role="listitem"
+              className={`chip${q.toLowerCase() === filter.toLowerCase() ? ' active' : ''}`}
+              to={href({q: filter})}
+            >
+              {filter}
+            </Link>
+          ))}
+        </div>
+        <Form
+          method="get"
+          onChange={(event) => void submit(event.currentTarget)}
+        >
+          {q ? <input type="hidden" name="q" value={q} /> : null}
+          <label className="visually-hidden" htmlFor="sort">
+            Sort by
+          </label>
+          <select id="sort" name="sort" defaultValue={sort}>
+            {Object.entries(SORTS).map(([value, {label}]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Form>
+      </div>
+
+      <ArtworkGrid products={products} eager={8} />
+
+      <nav className="pagination" aria-label="More artworks">
+        {pageInfo.hasNextPage ? (
+          <Link
+            to={href({cursor: pageInfo.endCursor ?? '', direction: 'next'})}
+          >
+            More artworks
+          </Link>
+        ) : null}
+      </nav>
+      <div style={{height: '3rem'}} />
     </div>
   );
 }
 
-const COLLECTION_ITEM_FRAGMENT = `#graphql
-  fragment MoneyCollectionItem on MoneyV2 {
-    amount
-    currencyCode
-  }
-  fragment CollectionItem on Product {
-    id
-    handle
-    title
-    featuredImage {
-      id
-      altText
-      url
-      width
-      height
-    }
-    priceRange {
-      minVariantPrice {
-        ...MoneyCollectionItem
-      }
-      maxVariantPrice {
-        ...MoneyCollectionItem
-      }
-    }
-  }
-` as const;
-
-// NOTE: https://shopify.dev/docs/api/storefront/latest/objects/product
-const CATALOG_QUERY = `#graphql
-  query Catalog(
+const CATALOGUE_QUERY = `#graphql
+  query Catalogue(
     $country: CountryCode
     $language: LanguageCode
     $first: Int
     $last: Int
     $startCursor: String
     $endCursor: String
+    $query: String
+    $sortKey: ProductSortKeys
+    $reverse: Boolean
   ) @inContext(country: $country, language: $language) {
-    products(first: $first, last: $last, before: $startCursor, after: $endCursor) {
+    products(
+      first: $first
+      last: $last
+      before: $startCursor
+      after: $endCursor
+      query: $query
+      sortKey: $sortKey
+      reverse: $reverse
+    ) {
       nodes {
-        ...CollectionItem
+        ...ArtworkCard
       }
       pageInfo {
         hasPreviousPage
@@ -118,5 +155,5 @@ const CATALOG_QUERY = `#graphql
       }
     }
   }
-  ${COLLECTION_ITEM_FRAGMENT}
+  ${ARTWORK_CARD_FRAGMENT}
 ` as const;

@@ -52,3 +52,41 @@ test('robots.txt is served, so the catalogue can be indexed deliberately', async
   expect(response.status()).toBe(200);
   expect(await response.text()).toContain('User-agent');
 });
+
+for (const path of [
+  '/collections/all',
+  '/artists',
+  '/traditions',
+  '/visit',
+  '/for-artists',
+]) {
+  test(`${path} is served`, async ({page}) => {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('h1')).toBeVisible();
+  });
+}
+
+test('the studio sends a visitor who is not signed in to artist sign-in', async ({
+  page,
+}) => {
+  await page.goto('/studio');
+  await expect(page).toHaveURL(/\/studio\/sign-in$/);
+  await expect(page.getByLabel('Artist ID')).toBeVisible();
+});
+
+test('artist sign-in refuses something that is not an Artist ID', async ({
+  page,
+}) => {
+  await page.goto('/studio/sign-in');
+  await page.getByLabel('Artist ID').fill('not-an-id');
+  await page.getByRole('button', {name: 'Email me a code'}).click();
+  await expect(page.getByRole('alert')).toContainText('Artist ID');
+});
+
+test('a real Artist ID gets as far as the code', async ({page}) => {
+  await page.goto('/studio/sign-in');
+  await page.getByLabel('Artist ID').fill('AT000123');
+  await page.getByRole('button', {name: 'Email me a code'}).click();
+  await expect(page.getByLabel('One-time code')).toBeVisible();
+});
