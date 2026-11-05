@@ -1,0 +1,142 @@
+# Everything that has to hold before a change reaches main: the checks run on every push and
+# every pull request, and each is a required check on main (see docs/REPOSITORY-SETTINGS.md).
+#
+# ubuntu-latest only, and never a self-hosted runner. This repository is public, so a self-hosted
+# runner would execute a stranger's pull request on our own machine.
+#
+# Every action is pinned to a full commit, because a tag can be moved to point at new code. The
+# comment beside each pin names the release it was, and both were checked against the tag when
+# they were added here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request replaces its older run. On main each commit keeps its own run, so
+# that the history shows what passed at every point.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Throwaway values so the build has a usable environment. Nothing here is a real secret, and
+    # the storefront builds against Shopify's hosted mock, so no store and no token is needed.
+    env:
+      SESSION_SECRET: ci-only-session-secret-00000000000000000000
+      PUBLIC_STORE_DOMAIN: mock.shop
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Reads the pnpm version from package.json "packageManager", so CI and a laptop agree.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # --frozen-lockfile: a pull request that changed package.json without committing the
+      # lockfile fails here rather than quietly resolving something nobody reviewed.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Formatting
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Every environment variable is documented
+        run: pnpm check:env
+
+      - name: Unit tests
+        run: pnpm test
+
+      # Proves the store schema script is at least loadable and self-consistent without needing a
+      # store or an Admin API token. It makes no network call in this mode.
+      - name: The store schema script runs
+        run: pnpm shopify:setup --dry-run
+
+      - name: Production build
+        run: pnpm build
+
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      E2E_PORT: '3210'
+      CI: 'true'
+      # The mock PJK's own placeholder secret, so both sides of the signature agree. Not a secret.
+      PJK_SHARED_SECRET: mock-pjk-shared-secret-for-local-dev
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Playwright's browser, kept until the Playwright version changes. Its system libraries live
+      # outside the cache, so they are installed each time.
+      - id: browser
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install the browser
+        run: |
+          if [ "${{ steps.browser.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+
+      # The two stand-ins the suite runs against. Shopify's mock.shop is hosted and needs no
+      # account; the mock PJK is in this repository. Neither needs a credential, which is what
+      # lets this job run on a fork's pull request.
+      - name: Start the mock PJK
+        run: |
+          pnpm mock:pjk > mock-pjk.log 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:4010/.well-known/jwks.json > /dev/null; then
+              echo "mock PJK is up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the mock PJK did not start"; cat mock-pjk.log; exit 1
+
+      # Playwright starts the app itself (see playwright.config.ts).
+      - name: End-to-end tests
+        run: pnpm test:e2e
+
+      - name: Keep the report when something fails
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+            mock-pjk.log
+          retention-days: 7

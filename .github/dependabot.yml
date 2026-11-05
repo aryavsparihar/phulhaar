@@ -1,0 +1,40 @@
+# Dependency updates, monthly.
+#
+# Monthly rather than weekly on purpose. This is a small team on a tight budget, and a weekly
+# flood of pull requests nobody has time to review is indistinguishable from no updates at all --
+# except that it also hides the ones that matter. Anything genuinely urgent arrives through
+# GitHub's security advisories, which are not on this schedule.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    # Wait a week before proposing a newly published version, for the same reason
+    # pnpm-workspace.yaml holds every install back by a week: a compromised release is usually
+    # found and pulled within days. Without this, Dependabot would cheerfully offer us the very
+    # releases that policy exists to avoid.
+    cooldown:
+      default-days: 7
+    # One pull request for the development tooling rather than fifteen. Production dependencies
+    # are kept separate, because those are the ones worth reading carefully.
+    groups:
+      development:
+        dependency-type: development
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7

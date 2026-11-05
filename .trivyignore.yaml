@@ -1,0 +1,13 @@
+# Findings that cannot be fixed yet.
+#
+# Every entry needs a reason and an expiry date. Past that date Trivy stops ignoring it and the
+# security workflow fails until somebody looks again, so nothing can be silenced and forgotten.
+#
+# Nothing is ignored at the moment.
+#
+# The shape an entry takes:
+#
+# vulnerabilities:
+#   - id: CVE-0000-00000
+#     statement: Why this cannot be fixed, and what we are waiting for.
+#     expired_at: 2026-12-31
