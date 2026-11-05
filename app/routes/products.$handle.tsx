@@ -245,12 +245,6 @@ export default function Artwork() {
             </a>
           </div>
 
-          <ul className="artwork-assurances">
-            <li>An original, sent from the artist’s studio</li>
-            <li>Secure payment by UPI, card or net banking</li>
-            <li>Packed for the journey and insured in transit</li>
-          </ul>
-
           <dl className="details">
             {details
               .filter(([, value]) => !!value)

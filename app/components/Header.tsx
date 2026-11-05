@@ -11,16 +11,15 @@ import {GALLERY, NAV} from '~/lib/gallery';
 
 interface HeaderProps {
   cart: Promise<CartApiQueryFragment | null>;
+  announcement?: string | null;
 }
 
 type Viewport = 'desktop' | 'mobile';
 
-export function Header({cart}: HeaderProps) {
+export function Header({cart, announcement}: HeaderProps) {
   return (
     <>
-      <div className="announce">
-        The gallery opens on <em>{GALLERY.openingLabel}</em>
-      </div>
+      {announcement ? <div className="announce">{announcement}</div> : null}
       <header className="header">
         <div className="header-inner">
           <Link
@@ -84,7 +83,7 @@ export function HeaderMenu({viewport}: {viewport: Viewport}) {
   );
 }
 
-function HeaderCtas({cart}: HeaderProps) {
+function HeaderCtas({cart}: Pick<HeaderProps, 'cart'>) {
   return (
     <nav className="header-ctas" aria-label="Shop">
       <SearchToggle />
@@ -147,7 +146,7 @@ function CartBadge({count}: {count: number}) {
   );
 }
 
-function CartToggle({cart}: HeaderProps) {
+function CartToggle({cart}: Pick<HeaderProps, 'cart'>) {
   return (
     <Suspense fallback={<CartBadge count={0} />}>
       <Await resolve={cart}>
