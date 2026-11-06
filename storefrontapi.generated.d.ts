@@ -1372,6 +1372,7 @@ export type RelatedArtworksQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
   query?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
+  first: StorefrontAPI.Scalars['Int']['input'];
 }>;
 
 export type RelatedArtworksQuery = {
@@ -1565,7 +1566,7 @@ interface GeneratedQueryTypes {
     return: ArtworkQuery;
     variables: ArtworkQueryVariables;
   };
-  '#graphql\n  query RelatedArtworks($country: CountryCode, $language: LanguageCode, $query: String)\n  @inContext(country: $country, language: $language) {\n    products(first: 5, query: $query, sortKey: BEST_SELLING) {\n      nodes { ...ArtworkCard }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
+  '#graphql\n  query RelatedArtworks($country: CountryCode, $language: LanguageCode, $query: String, $first: Int!)\n  @inContext(country: $country, language: $language) {\n    products(first: $first, query: $query, sortKey: BEST_SELLING) {\n      nodes { ...ArtworkCard }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
     return: RelatedArtworksQuery;
     variables: RelatedArtworksQueryVariables;
   };
