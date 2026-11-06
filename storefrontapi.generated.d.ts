@@ -442,6 +442,7 @@ export type SearchCorpusQuery = {
     nodes: Array<
       Pick<
         StorefrontAPI.Product,
+        | 'createdAt'
         | 'description'
         | 'tags'
         | 'id'
@@ -1023,80 +1024,6 @@ export type StoreCollectionsQuery = {
   };
 };
 
-export type CatalogueQueryVariables = StorefrontAPI.Exact<{
-  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
-  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
-  first?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Int']['input']>;
-  last?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Int']['input']>;
-  startCursor?: StorefrontAPI.InputMaybe<
-    StorefrontAPI.Scalars['String']['input']
-  >;
-  endCursor?: StorefrontAPI.InputMaybe<
-    StorefrontAPI.Scalars['String']['input']
-  >;
-  query?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
-  sortKey?: StorefrontAPI.InputMaybe<StorefrontAPI.ProductSortKeys>;
-  reverse?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Boolean']['input']>;
-}>;
-
-export type CatalogueQuery = {
-  products: {
-    nodes: Array<
-      Pick<
-        StorefrontAPI.Product,
-        | 'id'
-        | 'handle'
-        | 'title'
-        | 'vendor'
-        | 'productType'
-        | 'availableForSale'
-      > & {
-        featuredImage?: StorefrontAPI.Maybe<
-          Pick<
-            StorefrontAPI.Image,
-            'id' | 'altText' | 'url' | 'width' | 'height'
-          >
-        >;
-        priceRange: {
-          minVariantPrice: Pick<
-            StorefrontAPI.MoneyV2,
-            'amount' | 'currencyCode'
-          >;
-        };
-        artist?: StorefrontAPI.Maybe<{
-          reference?: StorefrontAPI.Maybe<
-            Pick<StorefrontAPI.Metaobject, 'handle'> & {
-              displayName?: StorefrontAPI.Maybe<
-                Pick<StorefrontAPI.MetaobjectField, 'value'>
-              >;
-              artistId?: StorefrontAPI.Maybe<
-                Pick<StorefrontAPI.MetaobjectField, 'value'>
-              >;
-            }
-          >;
-        }>;
-        year?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
-        heightCm?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
-        widthCm?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
-        depthCm?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
-        mediums?: StorefrontAPI.Maybe<{
-          references?: StorefrontAPI.Maybe<{
-            nodes: Array<{
-              field?: StorefrontAPI.Maybe<
-                Pick<StorefrontAPI.MetaobjectField, 'value'>
-              >;
-            }>;
-          }>;
-        }>;
-      }
-    >;
-    pageInfo: Pick<
-      StorefrontAPI.PageInfo,
-      'hasPreviousPage' | 'hasNextPage' | 'startCursor' | 'endCursor'
-    >;
-  };
-};
-
 export type PageQueryVariables = StorefrontAPI.Exact<{
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
@@ -1502,7 +1429,7 @@ interface GeneratedQueryTypes {
     return: GallerySettingsQuery;
     variables: GallerySettingsQueryVariables;
   };
-  '#graphql\n  query SearchCorpus($country: CountryCode, $language: LanguageCode, $after: String)\n  @inContext(country: $country, language: $language) {\n    products(first: 250, after: $after) {\n      nodes {\n        ...ArtworkCard\n        description\n        tags\n        traditions: metafield(namespace: "phulhaar", key: "traditions") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        styles: metafield(namespace: "phulhaar", key: "styles") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        subjects: metafield(namespace: "phulhaar", key: "subjects") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        colours: metafield(namespace: "phulhaar", key: "colours") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        surface: metafield(namespace: "phulhaar", key: "surface") { reference { ... on Metaobject { field(key: "name") { value } } } }\n        category: metafield(namespace: "phulhaar", key: "category") { reference { ... on Metaobject { field(key: "name") { value } } } }\n        note: metafield(namespace: "phulhaar", key: "artist_note") { value }\n        city: metafield(namespace: "phulhaar", key: "ships_from_city") { value }\n      }\n      pageInfo { hasNextPage endCursor }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
+  '#graphql\n  query SearchCorpus($country: CountryCode, $language: LanguageCode, $after: String)\n  @inContext(country: $country, language: $language) {\n    products(first: 250, after: $after, sortKey: BEST_SELLING) {\n      nodes {\n        ...ArtworkCard\n        createdAt\n        description\n        tags\n        traditions: metafield(namespace: "phulhaar", key: "traditions") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        styles: metafield(namespace: "phulhaar", key: "styles") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        subjects: metafield(namespace: "phulhaar", key: "subjects") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        colours: metafield(namespace: "phulhaar", key: "colours") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }\n        surface: metafield(namespace: "phulhaar", key: "surface") { reference { ... on Metaobject { field(key: "name") { value } } } }\n        category: metafield(namespace: "phulhaar", key: "category") { reference { ... on Metaobject { field(key: "name") { value } } } }\n        note: metafield(namespace: "phulhaar", key: "artist_note") { value }\n        city: metafield(namespace: "phulhaar", key: "ships_from_city") { value }\n      }\n      pageInfo { hasNextPage endCursor }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
     return: SearchCorpusQuery;
     variables: SearchCorpusQueryVariables;
   };
@@ -1545,10 +1472,6 @@ interface GeneratedQueryTypes {
   '#graphql\n  fragment Collection on Collection {\n    id\n    title\n    handle\n    image {\n      id\n      url\n      altText\n      width\n      height\n    }\n  }\n  query StoreCollections(\n    $country: CountryCode\n    $endCursor: String\n    $first: Int\n    $language: LanguageCode\n    $last: Int\n    $startCursor: String\n  ) @inContext(country: $country, language: $language) {\n    collections(\n      first: $first,\n      last: $last,\n      before: $startCursor,\n      after: $endCursor\n    ) {\n      nodes {\n        ...Collection\n      }\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n': {
     return: StoreCollectionsQuery;
     variables: StoreCollectionsQueryVariables;
-  };
-  '#graphql\n  query Catalogue(\n    $country: CountryCode\n    $language: LanguageCode\n    $first: Int\n    $last: Int\n    $startCursor: String\n    $endCursor: String\n    $query: String\n    $sortKey: ProductSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    products(\n      first: $first\n      last: $last\n      before: $startCursor\n      after: $endCursor\n      query: $query\n      sortKey: $sortKey\n      reverse: $reverse\n    ) {\n      nodes {\n        ...ArtworkCard\n      }\n      pageInfo {\n        hasPreviousPage\n        hasNextPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment ArtworkCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      altText\n      url\n      width\n      height\n    }\n    priceRange {\n      minVariantPrice {\n        amount\n        currencyCode\n      }\n    }\n    artist: metafield(namespace: "phulhaar", key: "artist") {\n      reference {\n        ... on Metaobject {\n          handle\n          displayName: field(key: "display_name") { value }\n          artistId: field(key: "artist_id") { value }\n        }\n      }\n    }\n    year: metafield(namespace: "phulhaar", key: "year") { value }\n    heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }\n    widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }\n    depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }\n    mediums: metafield(namespace: "phulhaar", key: "mediums") {\n      references(first: 3) {\n        nodes {\n          ... on Metaobject { field(key: "name") { value } }\n        }\n      }\n    }\n  }\n\n': {
-    return: CatalogueQuery;
-    variables: CatalogueQueryVariables;
   };
   '#graphql\n  query Page(\n    $language: LanguageCode,\n    $country: CountryCode,\n    $handle: String!\n  )\n  @inContext(language: $language, country: $country) {\n    page(handle: $handle) {\n      handle\n      id\n      title\n      body\n      seo {\n        description\n        title\n      }\n    }\n  }\n': {
     return: PageQuery;

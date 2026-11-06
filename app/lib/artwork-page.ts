@@ -195,3 +195,50 @@ export function parseRecent(raw: string | null): RecentWork[] {
     return [];
   }
 }
+
+/** An enquiry about an artist's work in general: which artist, and the page it came from. */
+export function artistEnquiryMailto(
+  email: string,
+  artist: {name: string; url: string},
+): string {
+  const subject = `Enquiry: work by ${artist.name}`;
+  const body = `Hello,\n\nI would like to know more about ${artist.name}'s work, including anything not yet on the site.\n\n${artist.url}\n\nThank you.`;
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/** schema.org Person for an artist's page. */
+export function artistJsonLd(artist: {
+  name: string;
+  url: string;
+  image: string | null;
+  description: string | null;
+  city: string | null;
+  state: string | null;
+}) {
+  const place = artist.city || artist.state;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: artist.name,
+    url: artist.url,
+    image: artist.image || undefined,
+    description: artist.description || undefined,
+    jobTitle: 'Artist',
+    homeLocation: place
+      ? {
+          '@type': 'Place',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: artist.city || undefined,
+            addressRegion: artist.state || undefined,
+            addressCountry: 'IN',
+          },
+        }
+      : undefined,
+    affiliation: {
+      '@type': 'Organization',
+      name: 'PAT and J.K. Co.',
+      url: 'https://pjk.co.in',
+    },
+  };
+}

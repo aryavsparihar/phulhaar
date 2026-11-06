@@ -7,7 +7,13 @@
  * fields (vendor for the artist, product type for the category) rather than showing a gap.
  */
 import type {MoneyV2} from '@shopify/hydrogen/storefront-api-types';
-import {formatDimensions} from '~/lib/artwork';
+import {
+  formatDimensions,
+  orientationOf,
+  sizeBandOf,
+  type Orientation,
+  type SizeBand,
+} from '~/lib/artwork';
 
 export const ARTWORK_CARD_FRAGMENT = `#graphql
   fragment ArtworkCard on Product {
@@ -178,3 +184,266 @@ export function belongsTo(
   const b = artist.name?.trim().toLowerCase();
   return !!a && !!b && a === b;
 }
+
+/* ------------------------------------------------------------------------------------------------
+ * Faceted filtering for /collections/all.
+ *
+ * The Storefront API's product search cannot filter on metafields or on a size computed from the
+ * dimensions, so the gallery filters its own catalogue: every live work is read once (and cached,
+ * see search-index.server.ts), then filtered, counted, sorted and paged here, exactly.
+ * --------------------------------------------------------------------------------------------- */
+
+export const SIZE_LABELS: Record<SizeBand, string> = {
+  small: 'Small, under 45 cm',
+  medium: 'Medium, 45–90 cm',
+  large: 'Large, 90–150 cm',
+  oversized: 'Oversized, 150 cm and over',
+};
+export const ORIENTATION_LABELS: Record<Orientation, string> = {
+  portrait: 'Portrait',
+  landscape: 'Landscape',
+  square: 'Square',
+};
+
+/** One work with everything a filter or a sort needs, worked out once. */
+export interface CatalogueEntry {
+  work: ArtworkCardData;
+  available: boolean;
+  size: SizeBand | null;
+  orientation: Orientation | null;
+  mediums: string[];
+  traditions: string[];
+  tags: string[];
+  price: number;
+  createdAt: string;
+  /** Position in Shopify's best-selling order, for "Featured". */
+  rank: number;
+}
+
+export function catalogueEntry(
+  work: ArtworkCardData,
+  extra: {
+    traditions: string[];
+    tags: string[];
+    createdAt: string;
+    rank: number;
+  },
+): CatalogueEntry {
+  const heightCm = numberOf(work.heightCm);
+  const widthCm = numberOf(work.widthCm);
+  const dims =
+    heightCm && widthCm && heightCm > 0 && widthCm > 0
+      ? {heightCm, widthCm, depthCm: numberOf(work.depthCm)}
+      : null;
+  return {
+    work,
+    available: !!work.availableForSale,
+    size: dims ? sizeBandOf(dims) : null,
+    orientation: dims ? orientationOf(dims) : null,
+    mediums: namesOf(work.mediums),
+    traditions: extra.traditions,
+    tags: extra.tags,
+    price: Number(work.priceRange.minVariantPrice.amount) || 0,
+    createdAt: extra.createdAt,
+    rank: extra.rank,
+  };
+}
+
+export interface CatalogueFilters {
+  tag: string;
+  available: boolean;
+  size: SizeBand | null;
+  orientation: Orientation | null;
+  medium: string;
+  tradition: string;
+}
+
+const text = (value: string | null) => value?.trim().slice(0, 60) ?? '';
+
+/** Filters from the address bar. Anything not recognised is ignored, never an error. */
+export function parseCatalogueFilters(
+  params: URLSearchParams,
+): CatalogueFilters {
+  const size = params.get('size');
+  const orientation = params.get('orientation');
+  return {
+    tag: text(params.get('tag')),
+    available: params.get('available') === '1',
+    size: size && size in SIZE_LABELS ? (size as SizeBand) : null,
+    orientation:
+      orientation && orientation in ORIENTATION_LABELS
+        ? (orientation as Orientation)
+        : null,
+    medium: text(params.get('medium')),
+    tradition: text(params.get('tradition')),
+  };
+}
+
+const same = (a: string, b: string) =>
+  a.localeCompare(b, 'en-IN', {sensitivity: 'base'}) === 0;
+const includes = (list: string[], value: string) =>
+  list.some((item) => same(item, value));
+
+type FacetKey = Exclude<keyof CatalogueFilters, never>;
+
+/** Whether an entry passes every filter, optionally ignoring one (for that facet's counts). */
+function passes(
+  entry: CatalogueEntry,
+  filters: CatalogueFilters,
+  ignore?: FacetKey,
+) {
+  if (ignore !== 'tag' && filters.tag && !includes(entry.tags, filters.tag))
+    return false;
+  if (ignore !== 'available' && filters.available && !entry.available)
+    return false;
+  if (ignore !== 'size' && filters.size && entry.size !== filters.size)
+    return false;
+  if (
+    ignore !== 'orientation' &&
+    filters.orientation &&
+    entry.orientation !== filters.orientation
+  )
+    return false;
+  if (
+    ignore !== 'medium' &&
+    filters.medium &&
+    !includes(entry.mediums, filters.medium)
+  )
+    return false;
+  if (
+    ignore !== 'tradition' &&
+    filters.tradition &&
+    !includes(entry.traditions, filters.tradition)
+  )
+    return false;
+  return true;
+}
+
+export function filterCatalogue(
+  entries: CatalogueEntry[],
+  filters: CatalogueFilters,
+) {
+  return entries.filter((entry) => passes(entry, filters));
+}
+
+export interface FacetOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+function tally(values: string[][]): FacetOption[] {
+  const counts = new Map<string, FacetOption>();
+  for (const list of values) {
+    for (const value of new Set(list.map((v) => v.trim()).filter(Boolean))) {
+      const key = value.toLowerCase();
+      const entry = counts.get(key) ?? {value, label: value, count: 0};
+      entry.count += 1;
+      counts.set(key, entry);
+    }
+  }
+  return [...counts.values()].sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label, 'en-IN'),
+  );
+}
+
+/**
+ * Options for each facet with how many works each would show, counted with every *other* filter
+ * applied: choosing "Large" still shows how many portraits there are among the large works.
+ */
+export function catalogueFacets(
+  entries: CatalogueEntry[],
+  filters: CatalogueFilters,
+) {
+  const without = (key: FacetKey) =>
+    entries.filter((entry) => passes(entry, filters, key));
+  const ordered = <T extends string>(
+    labels: Record<T, string>,
+    list: CatalogueEntry[],
+    pick: (entry: CatalogueEntry) => T | null,
+  ): FacetOption[] =>
+    (Object.keys(labels) as T[])
+      .map((value) => ({
+        value,
+        label: labels[value],
+        count: list.filter((entry) => pick(entry) === value).length,
+      }))
+      .filter((option) => option.count > 0);
+  return {
+    available: without('available').filter((entry) => entry.available).length,
+    size: ordered(SIZE_LABELS, without('size'), (entry) => entry.size),
+    orientation: ordered(
+      ORIENTATION_LABELS,
+      without('orientation'),
+      (entry) => entry.orientation,
+    ),
+    medium: tally(without('medium').map((entry) => entry.mediums)),
+    tradition: tally(without('tradition').map((entry) => entry.traditions)),
+  };
+}
+
+export function sortCatalogue(entries: CatalogueEntry[], sort: SortName) {
+  const list = [...entries];
+  if (sort === 'newest')
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  else if (sort === 'price-low') list.sort((a, b) => a.price - b.price);
+  else if (sort === 'price-high') list.sort((a, b) => b.price - a.price);
+  else list.sort((a, b) => a.rank - b.rank);
+  return list;
+}
+
+export function pageOf<T>(list: T[], requested: number, perPage: number) {
+  const pages = Math.max(1, Math.ceil(list.length / perPage));
+  const page = Math.min(Math.max(1, Math.floor(requested) || 1), pages);
+  return {
+    items: list.slice((page - 1) * perPage, page * perPage),
+    page,
+    pages,
+    total: list.length,
+  };
+}
+
+/** The filters in force, as pills that each know how to remove themselves. */
+export function activeFilters(filters: CatalogueFilters) {
+  const pills: Array<{key: keyof CatalogueFilters; label: string}> = [];
+  if (filters.tag) pills.push({key: 'tag', label: filters.tag});
+  if (filters.available) pills.push({key: 'available', label: 'Available'});
+  if (filters.size) pills.push({key: 'size', label: SIZE_LABELS[filters.size]});
+  if (filters.orientation)
+    pills.push({
+      key: 'orientation',
+      label: ORIENTATION_LABELS[filters.orientation],
+    });
+  if (filters.medium) pills.push({key: 'medium', label: filters.medium});
+  if (filters.tradition)
+    pills.push({key: 'tradition', label: filters.tradition});
+  return pills;
+}
+
+/** The /collections/all address for these filters, sort and page; defaults are left out. */
+export function catalogueHref(
+  filters: CatalogueFilters,
+  sort: SortName,
+  page = 1,
+) {
+  const params = new URLSearchParams();
+  if (filters.tag) params.set('tag', filters.tag);
+  if (filters.available) params.set('available', '1');
+  if (filters.size) params.set('size', filters.size);
+  if (filters.orientation) params.set('orientation', filters.orientation);
+  if (filters.medium) params.set('medium', filters.medium);
+  if (filters.tradition) params.set('tradition', filters.tradition);
+  if (sort !== 'featured') params.set('sort', sort);
+  if (page > 1) params.set('page', String(page));
+  const query = params.toString();
+  return `/collections/all${query ? `?${query}` : ''}`;
+}
+
+export const NO_FILTERS: CatalogueFilters = {
+  tag: '',
+  available: false,
+  size: null,
+  orientation: null,
+  medium: '',
+  tradition: '',
+};
