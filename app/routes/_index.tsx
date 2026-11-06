@@ -1,7 +1,11 @@
 import {Form, Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/_index';
 import {ArtworkGrid} from '~/components/ArtworkCard';
-import {ARTWORK_CARD_FRAGMENT, type ArtworkCardData} from '~/lib/catalogue';
+import {
+  ARTWORK_CARD_FRAGMENT,
+  isArtwork,
+  type ArtworkCardData,
+} from '~/lib/catalogue';
 import {GALLERY} from '~/lib/gallery';
 import {popularTags} from '~/lib/search-index.server';
 
@@ -26,8 +30,8 @@ export async function loader({context}: Route.LoaderArgs) {
 
   return {
     tags,
-    latest: latest.products.nodes as ArtworkCardData[],
-    featured: featured.products.nodes as ArtworkCardData[],
+    latest: (latest.products.nodes as ArtworkCardData[]).filter(isArtwork),
+    featured: (featured.products.nodes as ArtworkCardData[]).filter(isArtwork),
   };
 }
 

@@ -70,7 +70,7 @@ export async function loader({context}: Route.LoaderArgs) {
   return {
     cart: cart.get(),
     settings,
-    enquiryEmail: config.PHULHAAR_ENQUIRY_EMAIL ?? 'hello@phulhaargallery.com',
+    enquiryEmail: config.PHULHAAR_ENQUIRY_EMAIL ?? 'hello@pjk.co.in',
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     shop: getShopAnalytics({
       storefront,

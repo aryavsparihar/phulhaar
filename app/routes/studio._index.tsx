@@ -52,7 +52,7 @@ export async function loader({context}: Route.LoaderArgs) {
 export default function Studio() {
   const {artist, works, live, sold} = useLoaderData<typeof loader>();
   const root = useRouteLoaderData<RootLoader>('root');
-  const email = root?.enquiryEmail ?? 'hello@phulhaargallery.com';
+  const email = root?.enquiryEmail ?? 'hello@pjk.co.in';
   const submit = `mailto:${email}?subject=${encodeURIComponent(
     `New work from ${artist.displayName} (${artist.artistId})`,
   )}&body=${encodeURIComponent(

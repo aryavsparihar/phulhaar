@@ -8,7 +8,7 @@ export const meta: Route.MetaFunction = () => [
 
 export default function Visit() {
   const root = useRouteLoaderData<RootLoader>('root');
-  const email = root?.enquiryEmail ?? 'hello@phulhaargallery.com';
+  const email = root?.enquiryEmail ?? 'hello@pjk.co.in';
   const settings = root?.settings;
 
   return (

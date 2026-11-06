@@ -18,7 +18,9 @@ import {
 import {
   deleteMetaobject,
   getMetaobject,
+  listArtworks,
   loadOptions,
+  type ArtworkRow,
   upsertMetaobject,
   worksForArtist,
   type MetaobjectDetail,
@@ -32,6 +34,8 @@ import {
 } from '~/lib/schema-fields';
 import {slugify} from '~/lib/artwork';
 import {requireStaff} from '~/lib/staff-session.server';
+import {numericId as idOf} from '~/lib/ids';
+import {ArtworkTable} from '~/routes/admin.artworks._index';
 import {ErrorList, FieldInput} from '~/components/admin/FieldInput';
 
 const FIELDS = ARTIST_METAOBJECT.fields as FieldDef[];
@@ -42,7 +46,14 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   const isNew = params.id === 'new';
   const admin = adminClient(parseEnv(context.env));
   if (!admin)
-    return {isNew, artist: null, options: {} as Options, works: 0, error: null};
+    return {
+      isNew,
+      artist: null,
+      options: {} as Options,
+      works: 0,
+      catalogue: [] as ArtworkRow[],
+      error: null,
+    };
   try {
     const [artist, options] = await Promise.all([
       isNew
@@ -51,14 +62,23 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
       loadOptions(admin, referencedTypes(FIELDS)),
     ]);
     if (!isNew && !artist) throw new Response(null, {status: 404});
-    const works = artist ? await worksForArtist(admin, artist.id) : 0;
-    return {isNew, artist, options, works, error: null};
+    // The artist's whole catalogue, every status, newest change first.
+    const [works, catalogue] = artist
+      ? await Promise.all([
+          worksForArtist(admin, artist.id),
+          listArtworks(admin, {
+            query: `metafields.phulhaar.artist:"${artist.id}"`,
+          }).then((page) => page.rows),
+        ])
+      : [0, [] as ArtworkRow[]];
+    return {isNew, artist, options, works, catalogue, error: null};
   } catch (error) {
     return {
       isNew,
       artist: null as MetaobjectDetail | null,
       options: {} as Options,
       works: 0,
+      catalogue: [] as ArtworkRow[],
       error: failure(error),
     };
   }
@@ -131,7 +151,8 @@ export async function action({context, params, request}: Route.ActionArgs) {
 }
 
 export default function EditArtist() {
-  const {isNew, artist, options, works, error} = useLoaderData<typeof loader>();
+  const {isNew, artist, options, works, catalogue, error} =
+    useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const busy = useNavigation().state === 'submitting';
   const fieldErrors = result?.fieldErrors ?? {};
@@ -148,10 +169,10 @@ export default function EditArtist() {
         {artist ? (
           <div className="admin-actions">
             <Link
-              className="btn btn-quiet"
-              to={`/admin/artworks?q=${encodeURIComponent(artist.fields.display_name ?? '')}`}
+              className="btn"
+              to={`/admin/artworks/new?artist=${idOf(artist.id)}`}
             >
-              Their works ({works})
+              Add a work by this artist
             </Link>
             <a
               className="btn btn-quiet"
@@ -192,6 +213,30 @@ export default function EditArtist() {
           </button>
         </section>
       </Form>
+
+      {artist ? (
+        <section className="panel" id="catalogue">
+          <h2>
+            Catalogue{' '}
+            <span className="muted">
+              ({works} {works === 1 ? 'work' : 'works'})
+            </span>
+          </h2>
+          {catalogue.length ? (
+            <ArtworkTable rows={catalogue} />
+          ) : (
+            <p className="muted">No works yet.</p>
+          )}
+          <p style={{marginTop: '1rem'}}>
+            <Link
+              className="link-arrow"
+              to={`/admin/artworks/new?artist=${idOf(artist.id)}`}
+            >
+              Add a work by this artist
+            </Link>
+          </p>
+        </section>
+      ) : null}
 
       {artist ? (
         <section className="panel panel-danger">
