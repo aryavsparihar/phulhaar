@@ -12,7 +12,6 @@ import {
   useRouteLoaderData,
 } from 'react-router';
 import type {Route} from './+types/root';
-import favicon from '~/assets/favicon.svg';
 import {parseEnv} from '~/lib/env.server';
 import {gallerySettings} from '~/lib/gallery-settings.server';
 import resetStyles from '~/styles/reset.css?url';
@@ -41,7 +40,15 @@ const PRELOADED_FONTS = [
 export function links() {
   return [
     {rel: 'preconnect', href: 'https://cdn.shopify.com'},
-    {rel: 'icon', type: 'image/svg+xml', href: favicon},
+    // The Phulhaar P, from the garland mark: the whole garland is too fine to read at tab size.
+    {rel: 'icon', href: '/favicon.ico', sizes: '32x32'},
+    {
+      rel: 'icon',
+      type: 'image/png',
+      sizes: '192x192',
+      href: '/brand/favicon-192.png',
+    },
+    {rel: 'apple-touch-icon', href: '/brand/apple-touch-icon.png'},
     ...PRELOADED_FONTS.map((font) => ({
       rel: 'preload',
       as: 'font',
