@@ -9,7 +9,9 @@ import {
   isArtwork,
   ARTWORK_CARD_FRAGMENT,
   artistOf,
+  catalogueEntry,
   type ArtworkCardData,
+  type CatalogueEntry,
 } from '~/lib/catalogue';
 import {
   buildIndex,
@@ -21,9 +23,10 @@ import {
 const SEARCH_PRODUCTS_QUERY = `#graphql
   query SearchCorpus($country: CountryCode, $language: LanguageCode, $after: String)
   @inContext(country: $country, language: $language) {
-    products(first: 250, after: $after) {
+    products(first: 250, after: $after, sortKey: BEST_SELLING) {
       nodes {
         ...ArtworkCard
+        createdAt
         description
         tags
         traditions: metafield(namespace: "phulhaar", key: "traditions") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }
@@ -66,6 +69,8 @@ export interface ArtistResult {
 interface Corpus {
   index: SearchIndex;
   works: Map<string, ArtworkCardData>;
+  /** Every work in best-selling order, with its facets worked out, for /collections/all. */
+  entries: CatalogueEntry[];
   artists: Map<string, ArtistResult>;
   builtAt: number;
 }
@@ -88,6 +93,7 @@ let cached: Corpus | null = null;
 async function buildCorpus(storefront: Storefront): Promise<Corpus> {
   const docs: SearchDoc[] = [];
   const works = new Map<string, ArtworkCardData>();
+  const entries: CatalogueEntry[] = [];
   let after: string | null = null;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
@@ -102,6 +108,18 @@ async function buildCorpus(storefront: Storefront): Promise<Corpus> {
       const card = node as unknown as ArtworkCardData;
       if (!isArtwork(card)) continue;
       works.set(node.id, card);
+      entries.push(
+        catalogueEntry(card, {
+          traditions: (node.traditions?.references?.nodes ?? [])
+            .map(
+              (n: {field?: {value?: string | null} | null}) => n.field?.value,
+            )
+            .filter((v): v is string => !!v),
+          tags: node.tags,
+          createdAt: String(node.createdAt ?? ''),
+          rank: entries.length,
+        }),
+      );
       const mediums = (node.mediums?.references?.nodes ?? [])
         .map((n: {field?: {value?: string | null} | null}) => n.field?.value)
         .filter(Boolean)
@@ -160,7 +178,13 @@ async function buildCorpus(storefront: Storefront): Promise<Corpus> {
     });
   }
 
-  return {index: buildIndex(docs), works, artists, builtAt: Date.now()};
+  return {
+    index: buildIndex(docs),
+    works,
+    entries,
+    artists,
+    builtAt: Date.now(),
+  };
 }
 
 async function corpus(storefront: Storefront) {
@@ -207,4 +231,9 @@ export async function popularTags(storefront: Storefront, limit = 14) {
     .sort((a, b) => b.count - a.count)
     .slice(0, limit)
     .map((t) => t.label);
+}
+
+/** Every live work with its facets, for the gallery's own filtering on /collections/all. */
+export async function catalogueEntries(storefront: Storefront) {
+  return (await corpus(storefront)).entries;
 }

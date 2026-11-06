@@ -1856,3 +1856,157 @@ a.stat:hover {
   background: var(--surface);
   display: block;
 }
+
+/* All artworks: facets, active filter pills, paging. */
+form.facets {
+  max-width: none;
+}
+.facets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+  padding: 1rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1rem;
+}
+.facet {
+  display: grid;
+  gap: 0.25rem;
+}
+.facet label {
+  font-variant: all-small-caps;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+}
+.facet select {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.6rem;
+}
+.facet select:disabled {
+  opacity: 0.55;
+}
+.facet-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+.facet-check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+}
+.facet-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.5rem;
+}
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pill {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.pill:hover {
+  background: var(--magenta-deep);
+  color: #fff;
+}
+.pagination:has(> :nth-child(3)) {
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Artist directory. */
+.directory-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.segmented a {
+  padding: 0.4rem 1.1rem;
+  text-decoration: none;
+}
+.segmented a.active {
+  background: var(--ink);
+  color: var(--cream);
+}
+.directory-search {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+.directory-search input {
+  width: 100%;
+}
+.alphabet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  margin-bottom: 1rem;
+}
+.alphabet a,
+.alphabet span {
+  min-width: 2rem;
+  padding: 0.3rem 0.45rem;
+  text-align: center;
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+.alphabet span {
+  color: rgba(2, 49, 24, 0.3);
+}
+.alphabet a:hover,
+.alphabet a.active {
+  background: var(--ink);
+  color: var(--cream);
+}
+.directory-group {
+  margin: 1.5rem 0 2.5rem;
+}
+.directory-heading {
+  font-size: 1.6rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.artist-counts {
+  margin: 0.5rem 0 0.9rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 40em) {
+  .facets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .facet-check {
+    grid-column: 1 / -1;
+  }
+}
