@@ -198,12 +198,24 @@ export async function setStock(
   inventoryItemId: string,
   quantity: number,
 ) {
-  const {locations} = await admin<{locations: {nodes: Array<{id: string}>}}>(
+  // `location` with no ID is the store's primary location, where an original is kept; the first
+  // active location is the fallback for a store that has none marked.
+  const {location, locations} = await admin<{
+    location: {id: string} | null;
+    locations: {nodes: Array<{id: string}>};
+  }>(
     `#graphql
-    query Locations { locations(first: 1) { nodes { id } } }`,
+    query Locations {
+      location { id }
+      locations(first: 1, query: "active:true") { nodes { id } }
+    }`,
   );
-  const locationId = locations.nodes[0]?.id;
-  if (!locationId) return;
+  const locationId = location?.id ?? locations.nodes[0]?.id;
+  if (!locationId) {
+    throw new AdminError('The store has no location to hold stock', [
+      'Add a location in Shopify admin, Settings, Locations.',
+    ]);
+  }
   const {inventorySetQuantities} = await admin<{
     inventorySetQuantities: {userErrors: UserErrors};
   }>(

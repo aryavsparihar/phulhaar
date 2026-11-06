@@ -99,6 +99,7 @@ grant exactly:
 read_products, write_products,
 read_files, write_files,
 read_metaobjects, write_metaobjects,
+read_metaobject_definitions, write_metaobject_definitions,
 read_inventory, write_inventory,
 read_locations,
 read_publications, write_publications,
@@ -107,9 +108,11 @@ read_orders
 
 Nothing else. The `/admin` panel uses this token for every create, edit and delete of artworks,
 artists and gallery settings; `read_locations` lets it set an original's stock to one, and the
-publications scopes publish a work to the Online Store when it goes live. After changing the
-definitions, run `pnpm shopify:setup` again, which also creates the `phulhaar_gallery` settings
-entry. The reasoning for each is in `docs/ARCHITECTURE.md`.
+publications scopes publish a work to the Online Store when it goes live. `pnpm shopify:setup`
+creates the metaobject and metafield definitions themselves, which is what the two
+`*_metaobject_definitions` scopes are for. After changing the definitions, run `pnpm shopify:setup`
+again, which also creates the `phulhaar_gallery` settings entry. The reasoning for each is in
+`docs/ARCHITECTURE.md`.
 
 Install it and copy the **Admin API access token**. It begins `shpat_`.
 

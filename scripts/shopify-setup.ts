@@ -186,15 +186,49 @@ interface ExistingMetaobject {
   fieldDefinitions: Array<{key: string; name: string; type: {name: string}}>;
 }
 
+/**
+ * Shopify's Admin API takes a reference's target as a definition ID, not its type name, so a
+ * `metaobject_definition_type` validation is resolved against the definitions already synced.
+ * Taxonomies are synced first for exactly this reason.
+ */
+function resolveValidations(
+  validations: FieldDefinition['validations'],
+  existing: Map<string, ExistingMetaobject>,
+) {
+  return (validations ?? []).map((validation) => {
+    const target =
+      validation.name === 'metaobject_definition_type'
+        ? existing.get(validation.value)
+        : undefined;
+    return target
+      ? {name: 'metaobject_definition_id', value: target.id}
+      : validation;
+  });
+}
+
+/** Metafield types Shopify lets staff filter the admin's product list by. */
+const ADMIN_FILTERABLE_TYPES = new Set([
+  'single_line_text_field',
+  'list.single_line_text_field',
+  'boolean',
+  'number_integer',
+  'number_decimal',
+  'metaobject_reference',
+  'list.metaobject_reference',
+]);
+
 /** A field definition in the shape the metaobject mutations want. */
-function metaobjectField(field: FieldDefinition) {
+function metaobjectField(
+  field: FieldDefinition,
+  existing: Map<string, ExistingMetaobject>,
+) {
   return {
     key: field.key,
     name: field.name,
-    description: field.description,
+    description: field.description?.slice(0, 255),
     type: field.type,
     required: field.required ?? false,
-    validations: field.validations ?? [],
+    validations: resolveValidations(field.validations, existing),
   };
 }
 
@@ -238,7 +272,9 @@ async function syncMetaobjectDefinition(
   },
 ): Promise<void> {
   const current = existing.get(definition.type);
-  const fieldDefinitions = definition.fields.map(metaobjectField);
+  const fieldDefinitions = definition.fields.map((f) =>
+    metaobjectField(f, existing),
+  );
 
   if (!current) {
     console.log(`  + ${definition.type} (${fieldDefinitions.length} fields)`);
@@ -246,12 +282,15 @@ async function syncMetaobjectDefinition(
     if (dryRun) return;
 
     const result = await request<{
-      metaobjectDefinitionCreate: {userErrors: Array<{message: string}>};
+      metaobjectDefinitionCreate: {
+        metaobjectDefinition: {id: string; type: string} | null;
+        userErrors: Array<{message: string}>;
+      };
     }>(CREATE_METAOBJECT, {
       definition: {
         type: definition.type,
         name: definition.name,
-        description: definition.description,
+        description: definition.description?.slice(0, 255),
         fieldDefinitions,
         // Entries have to be publishable for the storefront to read them at all, and the
         // storefront is the only reason they exist.
@@ -264,6 +303,14 @@ async function syncMetaobjectDefinition(
       `creating ${definition.type}`,
       result.metaobjectDefinitionCreate,
     );
+    // Later definitions that reference this one need its ID.
+    const created = result.metaobjectDefinitionCreate.metaobjectDefinition;
+    if (created)
+      existing.set(definition.type, {
+        ...created,
+        name: definition.name,
+        fieldDefinitions: [],
+      });
     return;
   }
 
@@ -309,7 +356,7 @@ async function syncMetaobjectDefinition(
     id: current.id,
     definition: {
       name: definition.name,
-      description: definition.description,
+      description: definition.description?.slice(0, 255),
       fieldDefinitions: [
         ...toCreate.map((field) => ({create: field})),
         ...toUpdate.map(({key, name, description, required, validations}) => ({
@@ -395,7 +442,9 @@ const UPDATE_METAFIELD = `
   }
 `;
 
-async function syncProductMetafields(): Promise<void> {
+async function syncProductMetafields(
+  existing: Map<string, ExistingMetaobject>,
+): Promise<void> {
   const live = dryRun
     ? new Map<string, {id: string; key: string; type: {name: string}}>()
     : new Map(
@@ -415,12 +464,16 @@ async function syncProductMetafields(): Promise<void> {
       name: field.name,
       namespace: NAMESPACE,
       key: field.key,
-      description: field.description,
+      description: field.description?.slice(0, 255),
       ownerType: 'PRODUCT',
-      validations: field.validations ?? [],
+      validations: resolveValidations(field.validations, existing),
       // The storefront has to be able to read every one of these: they are what the artwork page
       // and the filters are built from. None of them is private.
-      access: {admin: 'MERCHANT_READ_WRITE', storefront: 'PUBLIC_READ'},
+      access: {storefront: 'PUBLIC_READ'},
+      // So staff can filter the admin's product list by artist, availability and the rest.
+      ...(ADMIN_FILTERABLE_TYPES.has(field.type)
+        ? {capabilities: {adminFilterable: {enabled: true}}}
+        : {}),
     };
 
     if (!current) {
@@ -472,10 +525,13 @@ async function syncProductMetafields(): Promise<void> {
         name: common.name,
         namespace: common.namespace,
         key: common.key,
-        description: common.description,
+        description: common.description?.slice(0, 255),
         ownerType: common.ownerType,
         validations: common.validations,
         access: common.access,
+        ...('capabilities' in common
+          ? {capabilities: common.capabilities}
+          : {}),
         pin: true,
       },
     });
@@ -529,7 +585,7 @@ async function main(): Promise<void> {
     await syncMetaobjectDefinition(existing, {
       type: taxonomy.type,
       name: taxonomy.name,
-      description: taxonomy.description,
+      description: taxonomy.description?.slice(0, 255),
       fields: taxonomyFields(taxonomy),
     });
   }
@@ -546,7 +602,7 @@ async function main(): Promise<void> {
   await syncMetaobjectDefinition(existing, GALLERY_METAOBJECT);
 
   console.log('\nArtwork fields');
-  await syncProductMetafields();
+  await syncProductMetafields(existing);
 
   const filters = PRODUCT_METAFIELDS.filter((field) => field.filter);
 

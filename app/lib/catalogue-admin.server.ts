@@ -12,6 +12,7 @@ import {
   uploadFileImage,
   type AdminClient,
 } from '~/lib/admin-api.server';
+import {stockFor} from '~/lib/catalogue';
 import {computeArtworkFields} from '~/lib/schema-fields';
 
 const NS = 'phulhaar';
@@ -379,11 +380,8 @@ export async function saveArtwork(
     );
     check(productVariantsBulkUpdate.userErrors, 'set the price');
 
-    const rarity = values.rarity ?? 'original';
-    if (rarity === 'original') {
-      const sold = values.availability === 'sold';
-      await setStock(admin, variant.inventoryItemId, sold ? 0 : 1);
-    }
+    const stock = stockFor(values);
+    if (stock !== null) await setStock(admin, variant.inventoryItemId, stock);
   }
 
   if (input.status === 'ACTIVE') await publishEverywhere(admin, id);
