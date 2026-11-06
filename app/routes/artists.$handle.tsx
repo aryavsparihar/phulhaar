@@ -1,4 +1,4 @@
-import {Link, useLoaderData} from 'react-router';
+import {Link, useLoaderData, useRouteLoaderData} from 'react-router';
 import {Image} from '@shopify/hydrogen';
 import type {Route} from './+types/artists.$handle';
 import {ArtworkGrid} from '~/components/ArtworkCard';
@@ -8,6 +8,13 @@ import {
   type ArtworkCardData,
 } from '~/lib/catalogue';
 import {initialOf} from '~/lib/gallery';
+import {parseEnv} from '~/lib/env.server';
+import type {RootLoader} from '~/root';
+import {
+  artistEnquiryMailto,
+  artistJsonLd,
+  jsonForScript,
+} from '~/lib/artwork-page';
 
 export const meta: Route.MetaFunction = ({data}) => [
   {
@@ -18,9 +25,10 @@ export const meta: Route.MetaFunction = ({data}) => [
   ...(data?.artist.biography
     ? [{name: 'description', content: data.artist.biography.slice(0, 160)}]
     : []),
+  ...(data ? [{tagName: 'link', rel: 'canonical', href: data.url}] : []),
 ];
 
-export async function loader({context, params}: Route.LoaderArgs) {
+export async function loader({context, params, request}: Route.LoaderArgs) {
   const handle = params.handle ?? '';
   const {metaobject} = await context.storefront
     .query(ARTIST_QUERY, {
@@ -47,7 +55,12 @@ export async function loader({context, params}: Route.LoaderArgs) {
     return belongsTo(work, {artistId, name});
   });
 
+  const origin = (
+    parseEnv(context.env).PHULHAAR_SITE_URL ?? new URL(request.url).origin
+  ).replace(/\/$/, '');
+
   return {
+    url: `${origin}/artists/${handle}`,
     artist: {
       handle,
       name,
@@ -70,7 +83,10 @@ export async function loader({context, params}: Route.LoaderArgs) {
 }
 
 export default function Artist() {
-  const {artist, works} = useLoaderData<typeof loader>();
+  const {artist, works, url} = useLoaderData<typeof loader>();
+  const root = useRouteLoaderData<RootLoader>('root');
+  const email = root?.enquiryEmail ?? 'hello@pjk.co.in';
+  const available = works.filter((work) => work.availableForSale).length;
 
   return (
     <div className="wrap">
@@ -102,6 +118,17 @@ export default function Artist() {
           {artist.verified ? (
             <span className="verified">✓ Verified by PAT and J.K. Co.</span>
           ) : null}
+          <p className="artist-counts">
+            {works.length
+              ? `${works.length} ${works.length === 1 ? 'work' : 'works'} in the gallery · ${available} available`
+              : 'No works in the gallery yet'}
+          </p>
+          <a
+            className="btn btn-quiet"
+            href={artistEnquiryMailto(email, {name: artist.name, url})}
+          >
+            Enquire about {artist.name}&rsquo;s work
+          </a>
         </div>
       </header>
 
@@ -118,8 +145,40 @@ export default function Artist() {
 
       <hr className="gold-rule" style={{marginBottom: '2rem'}} />
       <h2>Works by {artist.name}</h2>
-      <ArtworkGrid products={works} />
+      {works.length ? (
+        <ArtworkGrid products={works} />
+      ) : (
+        <div className="empty">
+          <h3>No works hung yet</h3>
+          <p className="muted">
+            {artist.name}&rsquo;s first works are on their way. Write to the
+            gallery to hear when they arrive, or to ask about a commission.
+          </p>
+          <a
+            className="link-arrow"
+            href={artistEnquiryMailto(email, {name: artist.name, url})}
+          >
+            Write to the gallery
+          </a>
+        </div>
+      )}
       <div style={{height: '5rem'}} />
+      <script
+        type="application/ld+json"
+        // Escaped for a script element by jsonForScript; the data is the store's own.
+        dangerouslySetInnerHTML={{
+          __html: jsonForScript(
+            artistJsonLd({
+              name: artist.name,
+              url,
+              image: artist.portrait?.url ?? null,
+              description: artist.statement || artist.biography,
+              city: artist.city,
+              state: artist.state,
+            }),
+          ),
+        }}
+      />
     </div>
   );
 }

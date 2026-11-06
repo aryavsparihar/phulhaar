@@ -125,3 +125,37 @@ test('a product that is not an artwork is not shown as one', async ({page}) => {
   const response = await page.goto('/products/sweatpants');
   expect(response?.status()).toBe(404);
 });
+
+test('artwork filters show as pills with a way to clear them', async ({
+  page,
+}) => {
+  await page.goto('/collections/all?available=1&size=small');
+  const pills = page.getByRole('list', {name: 'Filters in use'});
+  await expect(
+    pills.getByRole('link', {name: 'Remove Available'}),
+  ).toBeVisible();
+  await expect(
+    pills.getByRole('link', {name: 'Remove Small, under 45 cm'}),
+  ).toBeVisible();
+  await pills.getByRole('link', {name: 'Clear filters'}).click();
+  await expect(page).toHaveURL(/\/collections\/all$/);
+  await expect(page.getByRole('list', {name: 'Filters in use'})).toHaveCount(0);
+});
+
+test('an unknown filter value is ignored rather than an error', async ({
+  page,
+}) => {
+  const response = await page.goto(
+    '/collections/all?size=enormous&orientation=round&page=-4',
+  );
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole('list', {name: 'Filters in use'})).toHaveCount(0);
+});
+
+for (const path of ['/artists?view=state', '/artists?letter=S&name=sita']) {
+  test(`the artist directory answers ${path}`, async ({page}) => {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('h1')).toBeVisible();
+  });
+}

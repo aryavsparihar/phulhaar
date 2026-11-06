@@ -1,6 +1,8 @@
 import {describe, expect, it} from 'vitest';
 import {
   addRecent,
+  artistEnquiryMailto,
+  artistJsonLd,
   artworkJsonLd,
   enquiryMailto,
   jsonForScript,
@@ -167,5 +169,35 @@ describe('recently viewed', () => {
   it('survives storage that is empty or corrupt', () => {
     expect(parseRecent(null)).toEqual([]);
     expect(parseRecent('{not json')).toEqual([]);
+  });
+});
+
+describe('artist enquiry and Person data', () => {
+  it('names the artist and the page', () => {
+    const mailto = artistEnquiryMailto('hello@pjk.co.in', {
+      name: 'Sita Devi',
+      url: 'https://phulhaargallery.com/artists/sita-devi',
+    });
+    expect(subjectOf(mailto)).toBe('Enquiry: work by Sita Devi');
+    expect(bodyOf(mailto)).toContain(
+      'https://phulhaargallery.com/artists/sita-devi',
+    );
+  });
+  it('describes a Person with a home in India', () => {
+    const data = artistJsonLd({
+      name: 'Sita Devi',
+      url: 'https://phulhaargallery.com/artists/sita-devi',
+      image: null,
+      description: null,
+      city: 'Madhubani',
+      state: 'Bihar',
+    });
+    expect(data['@type']).toBe('Person');
+    expect(data.homeLocation?.address).toMatchObject({
+      addressLocality: 'Madhubani',
+      addressRegion: 'Bihar',
+      addressCountry: 'IN',
+    });
+    expect(data.image).toBeUndefined();
   });
 });
