@@ -231,6 +231,8 @@ button.btn {
 }
 .btn-block {
   width: 100%;
+  /* A link styled as a button is content-box by default, so its padding would add to 100%. */
+  box-sizing: border-box;
 }
 .link-arrow {
   color: var(--magenta);
@@ -813,6 +815,7 @@ aside li {
 }
 .art-card-frame {
   display: flex;
+  overflow: hidden;
   align-items: center;
   justify-content: center;
   aspect-ratio: 4/5;
@@ -822,10 +825,15 @@ aside li {
   transition: background 0.25s;
 }
 .art-card-frame img {
-  max-height: 100%;
+  display: block;
+  /* Any shape of photograph, whole and unstretched, inside the same 4:5 wall. */
   width: auto;
+  height: auto;
   max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
   object-fit: contain;
+  outline: 1px solid rgba(2, 49, 24, 0.06);
   box-shadow:
     0 1px 2px rgba(2, 49, 24, 0.12),
     0 8px 22px rgba(2, 49, 24, 0.12);
@@ -966,17 +974,33 @@ aside li {
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  padding: clamp(1.25rem, 5vw, 4rem);
-  min-height: 50vh;
+  padding: clamp(1.5rem, 6vw, 4.5rem);
+  min-height: min(60vh, 34rem);
+  overflow: hidden;
 }
 .artwork-stage img {
-  max-height: 75vh;
+  display: block;
+  /* Centred and whole whatever its shape or size: never wider than the wall, never taller than
+     the screen, never enlarged past the photograph or stretched out of proportion. */
   width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(72vh, 52rem);
   object-fit: contain;
+  outline: 1px solid rgba(2, 49, 24, 0.06);
   box-shadow:
-    0 2px 4px rgba(2, 49, 24, 0.12),
-    0 18px 40px rgba(2, 49, 24, 0.16);
+    0 1px 2px rgba(2, 49, 24, 0.1),
+    0 4px 10px rgba(2, 49, 24, 0.08),
+    0 22px 48px rgba(2, 49, 24, 0.16);
   cursor: zoom-in;
+}
+@media (max-width: 47.99em) {
+  .artwork-stage {
+    min-height: 0;
+  }
+  .artwork-stage img {
+    max-height: 62vh;
+  }
 }
 .artwork-thumbs {
   display: flex;
@@ -1004,6 +1028,7 @@ aside li {
 }
 .artwork-label {
   align-self: start;
+  max-width: 34rem;
 }
 @media (min-width: 60em) {
   .artwork-label {
@@ -1033,12 +1058,24 @@ aside li {
 .artwork-price {
   font-size: 1.6rem;
   font-family: var(--font-display);
-  margin: 1.25rem 0 1rem;
+  margin: 1.25rem 0 1.1rem;
+  line-height: 1.2;
+}
+.artwork-price .art-card-state {
+  font-size: 1rem;
+  letter-spacing: 0.14em;
 }
 .artwork-actions {
   display: grid;
   gap: 0.6rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+/* "Ask about similar works by …" can be long; it wraps rather than widening the page. */
+.artwork-actions .btn {
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
 }
 .artwork-assurances {
   list-style: none;
@@ -1068,10 +1105,11 @@ aside li {
 }
 .details > div {
   display: grid;
-  grid-template-columns: 9rem 1fr;
+  grid-template-columns: minmax(6.5rem, 9rem) 1fr;
   gap: 1rem;
-  padding: 0.6rem 0;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--line);
+  align-items: baseline;
 }
 .details dt {
   font-variant: all-small-caps;
@@ -1080,6 +1118,11 @@ aside li {
 }
 .details dd {
   margin: 0;
+}
+@media (max-width: 47.99em) {
+  .details > div {
+    grid-template-columns: 6.5rem 1fr;
+  }
 }
 .artwork-note {
   margin-top: 2rem;
@@ -1707,12 +1750,22 @@ a.stat:hover {
 }
 
 /* Artwork page: enquiry-first actions, lightbox, view in a room, recently viewed. */
-.artwork-open {
+button.artwork-open {
   all: unset;
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
   cursor: zoom-in;
 }
-.artwork-open:focus-visible {
+button.artwork-open:hover img {
+  box-shadow:
+    0 1px 2px rgba(2, 49, 24, 0.12),
+    0 6px 14px rgba(2, 49, 24, 0.1),
+    0 28px 56px rgba(2, 49, 24, 0.2);
+}
+button.artwork-open:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 4px;
 }
@@ -1824,12 +1877,14 @@ a.stat:hover {
   margin: 0;
 }
 .room {
+  display: block;
   width: 100%;
   height: 100%;
   max-height: calc(100dvh - 4.5rem);
   padding: clamp(0.5rem, 3vw, 2rem);
   box-sizing: border-box;
   background: #fff;
+  object-fit: contain;
 }
 .room-dim line {
   stroke: var(--ink-muted);
@@ -2058,4 +2113,15 @@ form.facets {
   padding: 0.85rem 1rem;
   border-left: 3px solid var(--gold);
   background: var(--surface);
+}
+
+/* A photograph Shopify has not finished processing: a quiet placeholder, never a broken image. */
+.media-processing {
+  aspect-ratio: 1;
+  place-content: center;
+  padding: 0.6rem;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  color: var(--ink-muted);
 }

@@ -13,7 +13,7 @@ import {
   type AdminClient,
 } from '~/lib/admin-api.server';
 import {stockFor} from '~/lib/catalogue';
-import {computeArtworkFields} from '~/lib/schema-fields';
+import {computeArtworkFields, reviewStatusFor} from '~/lib/schema-fields';
 
 const NS = 'phulhaar';
 type UserErrors = Array<{field?: string[] | null; message: string}>;
@@ -164,6 +164,7 @@ export interface ArtworkDetail {
   tags: string[];
   onlineStoreUrl: string | null;
   media: Array<{id: string; url: string; alt: string | null}>;
+  processingMedia: number;
   variant: {
     id: string;
     price: string;
@@ -193,6 +194,7 @@ export async function getArtwork(
         nodes: Array<{
           id: string;
           alt: string | null;
+          status: string;
           image?: {url: string} | null;
         }>;
       };
@@ -213,7 +215,7 @@ export async function getArtwork(
       product(id: $id) {
         id title handle status descriptionHtml vendor productType tags onlineStoreUrl
         media(first: 30) {
-          nodes { id alt ... on MediaImage { image { url(transform: {maxWidth: 600}) } } }
+          nodes { id alt status ... on MediaImage { image { url(transform: {maxWidth: 600}) } } }
         }
         variants(first: 1) {
           nodes { id price compareAtPrice inventoryQuantity inventoryItem { id } }
@@ -230,6 +232,10 @@ export async function getArtwork(
     media: product.media.nodes
       .filter((node) => node.image?.url)
       .map((node) => ({id: node.id, url: node.image!.url, alt: node.alt})),
+    // Uploaded but not yet given a URL by Shopify: shown as a placeholder, never as a broken image.
+    processingMedia: product.media.nodes.filter(
+      (node) => !node.image?.url && node.status !== 'FAILED',
+    ).length,
     variant: variant
       ? {
           id: variant.id,
@@ -267,7 +273,16 @@ export async function saveArtwork(
   admin: AdminClient,
   input: ArtworkInput,
 ): Promise<string> {
-  const values = {...input.values, ...computeArtworkFields(input.values)};
+  // Orientation and size band follow the measurements on every save, and go when they go.
+  const computed = computeArtworkFields(input.values);
+  const values: Record<string, string> = {...input.values, ...computed};
+  const cleared = [
+    ...input.cleared,
+    ...['orientation', 'size_band'].filter((key) => !(key in computed)),
+  ];
+  const currentReview = input.id ? await reviewStatusOf(admin, input.id) : null;
+  const review = reviewStatusFor(input.status, currentReview);
+  if (review && review !== currentReview) values.review_status = review;
   const metafields = Object.entries(values).map(([key, value]) => ({
     namespace: NS,
     key,
@@ -321,7 +336,7 @@ export async function saveArtwork(
     );
     check(productUpdate.userErrors, 'save the work');
 
-    const clear = input.cleared.filter((key) => !(key in values));
+    const clear = cleared.filter((key) => !(key in values));
     if (clear.length) {
       const {metafieldsDelete} = await admin<{
         metafieldsDelete: {userErrors: UserErrors};
@@ -385,7 +400,43 @@ export async function saveArtwork(
   }
 
   if (input.status === 'ACTIVE') await publishEverywhere(admin, id);
+  if (media.length) await waitForMedia(admin, id);
   return id;
+}
+
+async function reviewStatusOf(admin: AdminClient, id: string) {
+  const {product} = await admin<{
+    product: {metafield: {value: string} | null} | null;
+  }>(
+    `#graphql
+    query ReviewStatus($id: ID!) {
+      product(id: $id) { metafield(namespace: "${NS}", key: "review_status") { value } }
+    }`,
+    {id},
+  );
+  return product?.metafield?.value ?? null;
+}
+
+/**
+ * Shopify processes a new photograph for a few seconds before it has a URL. Wait briefly so the
+ * page staff land on usually shows it; if it is still processing, the admin shows a placeholder
+ * and the storefront, which only ever sees finished images, shows nothing until it is ready.
+ */
+async function waitForMedia(admin: AdminClient, id: string) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const {product} = await admin<{
+      product: {media: {nodes: Array<{status: string}>}} | null;
+    }>(
+      `#graphql
+      query MediaStatus($id: ID!) { product(id: $id) { media(first: 30) { nodes { status } } } }`,
+      {id},
+    );
+    const pending = product?.media.nodes.some(
+      (node) => node.status === 'UPLOADED' || node.status === 'PROCESSING',
+    );
+    if (!pending) return;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }
 
 export async function deleteArtwork(admin: AdminClient, id: string) {

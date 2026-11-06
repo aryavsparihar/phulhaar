@@ -11,9 +11,7 @@ import {
   useSelectedOptionInUrlParam,
 } from '@shopify/hydrogen';
 import type {RootLoader} from '~/root';
-import {AddToCartButton} from '~/components/AddToCartButton';
 import {ArtworkGrid} from '~/components/ArtworkCard';
-import {useAside} from '~/components/Aside';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {
   isArtwork,
@@ -118,7 +116,6 @@ export default function Artwork() {
   const {product, canonicalUrl, moreByArtist, fill} =
     useLoaderData<typeof loader>();
   const root = useRouteLoaderData<RootLoader>('root');
-  const {open} = useAside();
 
   const selectedVariant = useOptimisticVariant(
     product.selectedOrFirstAvailableVariant,
@@ -178,10 +175,6 @@ export default function Artwork() {
     }),
     [product.handle, product.title, artist.name, images],
   );
-
-  const lines = selectedVariant
-    ? [{merchandiseId: selectedVariant.id, quantity: 1, selectedVariant}]
-    : [];
 
   const details: Array<[string, string | null | undefined]> = [
     ['Artist', artist.name],
@@ -312,7 +305,7 @@ export default function Artwork() {
             )}
           </div>
 
-          {/* Release 1 is enquiry-first: a conversation with the gallery is the main way to buy. */}
+          {/* Release 1 sells by enquiry only; Buy now and Add to cart return with Razorpay checkout. */}
           <div className="artwork-actions">
             <a className="btn btn-block" href={enquiry}>
               {state === 'sold'
@@ -321,24 +314,6 @@ export default function Artwork() {
                   ? 'Ask for the price'
                   : 'Enquire about this work'}
             </a>
-            {buyable ? (
-              <div className="artwork-buy">
-                <AddToCartButton
-                  lines={lines}
-                  redirectTo="__checkout"
-                  className="btn btn-quiet btn-block"
-                >
-                  Buy now
-                </AddToCartButton>
-                <AddToCartButton
-                  lines={lines}
-                  onClick={() => open('cart')}
-                  className="btn btn-quiet btn-block"
-                >
-                  Add to cart
-                </AddToCartButton>
-              </div>
-            ) : null}
             <ShareButton title={product.title} url={canonicalUrl} />
           </div>
 
