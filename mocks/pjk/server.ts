@@ -233,6 +233,9 @@ async function signatureIsGood(
   return {ok: true};
 }
 
+/** The last code sent to each artist, for the browser tests' eyes only (see /__test/latest-code). */
+const latestCodes = new Map<string, string>();
+
 async function handle(
   request: IncomingMessage,
   response: ServerResponse,
@@ -241,6 +244,19 @@ async function handle(
 
   if (request.method === 'GET' && path === '/.well-known/jwks.json') {
     return send(response, 200, jwks());
+  }
+
+  // For the browser tests only, which cannot read this terminal: the last code sent to an artist.
+  // The real PJK has no such thing; it emails the code and that is the only place it goes.
+  if (request.method === 'GET' && path === '/__test/latest-code') {
+    const artistId =
+      new URL(request.url ?? '/', `http://localhost:${PORT}`).searchParams.get(
+        'artistId',
+      ) ?? '';
+    const code = latestCodes.get(artistId);
+    return code
+      ? send(response, 200, {code})
+      : send(response, 404, {code: 'no_code'});
   }
 
   if (request.method !== 'POST') {
@@ -284,6 +300,7 @@ async function handle(
     });
 
     if (known) {
+      latestCodes.set(artistId, code);
       console.log(
         `\n  one-time code for ${artistId}: ${code}  (challenge ${challengeId})\n`,
       );

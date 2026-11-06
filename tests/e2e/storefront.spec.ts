@@ -91,6 +91,51 @@ test('a real Artist ID gets as far as the code', async ({page}) => {
   await expect(page.getByLabel('One-time code')).toBeVisible();
 });
 
+test('an artist onboarded on PJK signs in with their Artist ID and code', async ({
+  page,
+  request,
+}, testInfo) => {
+  // One artist per project, since the projects run at once and a new code replaces the last.
+  const artistId = testInfo.project.name === 'mobile' ? 'AT000123' : 'AT000124';
+  await page.goto('/studio/sign-in');
+  // Typed the way people type it: lower case, with stray spaces.
+  await page.getByLabel('Artist ID').fill(` ${artistId.toLowerCase()} `);
+  await page.getByRole('button', {name: 'Email me a code'}).click();
+  await expect(page.getByLabel('One-time code')).toBeVisible();
+
+  // The mock PJK prints the code instead of emailing it; the test reads it from there.
+  const sent = await request.get(
+    `http://localhost:4010/__test/latest-code?artistId=${artistId}`,
+  );
+  expect(sent.ok()).toBe(true);
+  const {code} = (await sent.json()) as {code: string};
+
+  await page.getByLabel('One-time code').fill(code);
+  await page.getByRole('button', {name: 'Sign in'}).click();
+  await expect(page).toHaveURL(/\/studio$/);
+  await expect(page.getByText(artistId).first()).toBeVisible();
+});
+
+test('a suspended PJK artist is told so rather than signed in', async ({
+  page,
+  request,
+}, testInfo) => {
+  // There is one suspended artist in the mock, so this runs in one project only.
+  test.skip(testInfo.project.name !== 'desktop');
+  await page.goto('/studio/sign-in');
+  await page.getByLabel('Artist ID').fill('AT000125');
+  await page.getByRole('button', {name: 'Email me a code'}).click();
+  await expect(page.getByLabel('One-time code')).toBeVisible();
+  const sent = await request.get(
+    'http://localhost:4010/__test/latest-code?artistId=AT000125',
+  );
+  const {code} = (await sent.json()) as {code: string};
+  await page.getByLabel('One-time code').fill(code);
+  await page.getByRole('button', {name: 'Sign in'}).click();
+  await expect(page.getByRole('alert')).toContainText('not active');
+  await expect(page).toHaveURL(/\/studio\/sign-in$/);
+});
+
 test('the admin sends a visitor who is not signed in to staff sign-in', async ({
   page,
 }) => {
