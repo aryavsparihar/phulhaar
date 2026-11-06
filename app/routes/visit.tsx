@@ -1,12 +1,22 @@
-import {useRouteLoaderData} from 'react-router';
+import {useLoaderData, useRouteLoaderData} from 'react-router';
 import type {Route} from './+types/visit';
 import type {RootLoader} from '~/root';
+import {parseEnv} from '~/lib/env.server';
+import {galleryJsonLd, jsonForScript} from '~/lib/artwork-page';
 
 export const meta: Route.MetaFunction = () => [
   {title: 'Visit and contact — Phulhaar Gallery'},
 ];
 
+export function loader({context, request}: Route.LoaderArgs) {
+  const origin = (
+    parseEnv(context.env).PHULHAAR_SITE_URL ?? new URL(request.url).origin
+  ).replace(/\/$/, '');
+  return {origin};
+}
+
 export default function Visit() {
+  const {origin} = useLoaderData<typeof loader>();
   const root = useRouteLoaderData<RootLoader>('root');
   const email = root?.enquiryEmail ?? 'hello@pjk.co.in';
   const settings = root?.settings;
@@ -23,9 +33,9 @@ export default function Visit() {
           </p>
           <hr className="gold-rule" style={{margin: '1.5rem 0'}} />
 
+          <h3>Where</h3>
           {settings?.address.length ? (
             <>
-              <h3>Where</h3>
               <p>
                 {settings.address.map((line) => (
                   <span key={line}>
@@ -44,11 +54,17 @@ export default function Visit() {
                 ) : null}
               </p>
             </>
-          ) : null}
+          ) : (
+            <p className="gallery-note">
+              The gallery opens on 8 November 2026, and its address will be
+              given here. Until then, visits and private viewings are by
+              appointment: write to <a href={`mailto:${email}`}>{email}</a>.
+            </p>
+          )}
 
+          <h3>When</h3>
           {settings?.hours.length ? (
             <>
-              <h3>When</h3>
               <p>
                 {settings.hours.map((line) => (
                   <span key={line}>
@@ -58,7 +74,13 @@ export default function Visit() {
                 ))}
               </p>
             </>
-          ) : null}
+          ) : (
+            <p className="gallery-note">
+              Opening hours follow the opening on 8 November 2026. Viewings are
+              by appointment at a time that suits you; the online gallery is
+              open all the time.
+            </p>
+          )}
 
           <h3>Write to us</h3>
           <p>
@@ -84,6 +106,22 @@ export default function Visit() {
           height="215"
         />
       </div>
+      <script
+        type="application/ld+json"
+        // Escaped for a script element by jsonForScript; the data is the store's own.
+        dangerouslySetInnerHTML={{
+          __html: jsonForScript(
+            galleryJsonLd({
+              url: origin,
+              email,
+              phone: settings?.phone ?? null,
+              address: settings?.address ?? [],
+              mapUrl: settings?.mapUrl ?? null,
+              logo: `${origin}/brand/phulhaar-logo.png`,
+            }),
+          ),
+        }}
+      />
     </div>
   );
 }

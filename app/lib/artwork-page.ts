@@ -1,3 +1,5 @@
+import type {SaleState} from '~/lib/catalogue';
+
 /**
  * The artwork page's logic, kept apart from React so it is tested directly
  * (artwork-page.test.ts): the enquiry email, the structured data, the to-scale room, and the
@@ -18,15 +20,19 @@ export interface ArtworkFacts {
   description: string | null;
   images: string[];
   price: {amount: string; currencyCode: string} | null;
-  available: boolean;
+  state: SaleState;
 }
 
 /** "mailto:" with a subject and a body that already says which work, so nobody has to ask. */
 export function enquiryMailto(email: string, work: ArtworkFacts): string {
   const by = work.artist ? ` by ${work.artist}` : '';
-  const subject = work.available
-    ? `Enquiry: ${work.title}${by}`
-    : `Similar works${by} (${work.title} is sold)`;
+  const subject = {
+    available: `Enquiry: ${work.title}${by}`,
+    price_on_request: `Price enquiry: ${work.title}${by}`,
+    reserved: `Enquiry: ${work.title}${by} (reserved)`,
+    not_for_sale: `Enquiry: ${work.title}${by}`,
+    sold: `Similar works${by} (${work.title} is sold)`,
+  }[work.state];
   const facts = [
     work.title,
     work.artist,
@@ -34,9 +40,15 @@ export function enquiryMailto(email: string, work: ArtworkFacts): string {
     work.dimensions,
     work.url,
   ].filter(Boolean);
-  const opening = work.available
-    ? 'I would like to know more about this work:'
-    : `This work has sold. I would like to hear about similar works${by}:`;
+  const opening = {
+    available: 'I would like to know more about this work:',
+    price_on_request: 'Could you tell me the price of this work?',
+    reserved:
+      'This work is reserved. Please let me know if it becomes available, or about similar works:',
+    not_for_sale:
+      'I understand this work is not for sale. I would like to know more about it, or about similar works:',
+    sold: `This work has sold. I would like to hear about similar works${by}:`,
+  }[work.state];
   const body = `Hello,\n\n${opening}\n\n${facts.join('\n')}\n\nThank you.`;
   return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
@@ -69,18 +81,27 @@ export function artworkJsonLd(work: ArtworkFacts) {
     height: measure(work.heightCm),
     width: measure(work.widthCm),
     depth: measure(work.depthCm),
-    offers: work.price
-      ? {
-          '@type': 'Offer',
-          url: work.url,
-          price: work.price.amount,
-          priceCurrency: work.price.currencyCode,
-          availability: work.available
-            ? 'https://schema.org/InStock'
-            : 'https://schema.org/SoldOut',
-          itemCondition: 'https://schema.org/NewCondition',
-        }
-      : undefined,
+    // No offer for a work that is not for sale; no price for one whose price is on request.
+    offers:
+      work.state === 'not_for_sale'
+        ? undefined
+        : {
+            '@type': 'Offer',
+            url: work.url,
+            ...(work.state !== 'price_on_request' && work.price
+              ? {
+                  price: work.price.amount,
+                  priceCurrency: work.price.currencyCode,
+                }
+              : {}),
+            availability: {
+              available: 'https://schema.org/InStock',
+              price_on_request: 'https://schema.org/InStock',
+              reserved: 'https://schema.org/Reserved',
+              sold: 'https://schema.org/SoldOut',
+            }[work.state],
+            itemCondition: 'https://schema.org/NewCondition',
+          },
   };
 }
 
@@ -236,6 +257,42 @@ export function artistJsonLd(artist: {
         }
       : undefined,
     affiliation: {
+      '@type': 'Organization',
+      name: 'PAT and J.K. Co.',
+      url: 'https://pjk.co.in',
+    },
+  };
+}
+
+/** schema.org ArtGallery for the visit page; only what the gallery has actually set is stated. */
+export function galleryJsonLd(gallery: {
+  url: string;
+  email: string;
+  phone: string | null;
+  address: string[];
+  mapUrl: string | null;
+  logo: string;
+}) {
+  const [street, ...rest] = gallery.address;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ArtGallery',
+    name: 'Phulhaar Gallery',
+    url: gallery.url,
+    logo: gallery.logo,
+    image: gallery.logo,
+    email: gallery.email,
+    telephone: gallery.phone || undefined,
+    hasMap: gallery.mapUrl || undefined,
+    address: street
+      ? {
+          '@type': 'PostalAddress',
+          streetAddress: street,
+          addressLocality: rest.join(', ') || undefined,
+          addressCountry: 'IN',
+        }
+      : undefined,
+    parentOrganization: {
       '@type': 'Organization',
       name: 'PAT and J.K. Co.',
       url: 'https://pjk.co.in',

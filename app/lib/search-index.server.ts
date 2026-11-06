@@ -32,7 +32,7 @@ const SEARCH_PRODUCTS_QUERY = `#graphql
         traditions: metafield(namespace: "phulhaar", key: "traditions") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }
         styles: metafield(namespace: "phulhaar", key: "styles") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }
         subjects: metafield(namespace: "phulhaar", key: "subjects") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }
-        colours: metafield(namespace: "phulhaar", key: "colours") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } } } } }
+        colours: metafield(namespace: "phulhaar", key: "colours") { references(first: 10) { nodes { ... on Metaobject { field(key: "name") { value } swatch: field(key: "swatch") { value } } } } }
         surface: metafield(namespace: "phulhaar", key: "surface") { reference { ... on Metaobject { field(key: "name") { value } } } }
         category: metafield(namespace: "phulhaar", key: "category") { reference { ... on Metaobject { field(key: "name") { value } } } }
         note: metafield(namespace: "phulhaar", key: "artist_note") { value }
@@ -116,6 +116,17 @@ async function buildCorpus(storefront: Storefront): Promise<Corpus> {
             )
             .filter((v): v is string => !!v),
           tags: node.tags,
+          colours: (node.colours?.references?.nodes ?? [])
+            .map(
+              (n: {
+                field?: {value?: string | null} | null;
+                swatch?: {value?: string | null} | null;
+              }) => ({
+                name: n.field?.value ?? '',
+                swatch: n.swatch?.value ?? null,
+              }),
+            )
+            .filter((c: {name: string}) => !!c.name),
           createdAt: String(node.createdAt ?? ''),
           rank: entries.length,
         }),

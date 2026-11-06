@@ -3,6 +3,7 @@ import {
   addRecent,
   artistEnquiryMailto,
   artistJsonLd,
+  galleryJsonLd,
   artworkJsonLd,
   enquiryMailto,
   jsonForScript,
@@ -25,7 +26,7 @@ const work: ArtworkFacts = {
   description: 'A peacock in indigo and gold.',
   images: ['https://cdn.shopify.com/s/files/peacock.jpg'],
   price: {amount: '45000.0', currencyCode: 'INR'},
-  available: true,
+  state: 'available',
 };
 
 const bodyOf = (mailto: string) =>
@@ -53,7 +54,7 @@ describe('enquiryMailto', () => {
   it('asks about similar works when this one has sold', () => {
     const mailto = enquiryMailto('hello@pjk.co.in', {
       ...work,
-      available: false,
+      state: 'sold',
     });
     expect(subjectOf(mailto)).toContain('Similar works by Sita Devi');
     expect(bodyOf(mailto)).toContain('similar works by Sita Devi');
@@ -95,9 +96,9 @@ describe('artworkJsonLd', () => {
   });
 
   it('marks a sold work as sold out', () => {
-    expect(
-      artworkJsonLd({...work, available: false}).offers?.availability,
-    ).toBe('https://schema.org/SoldOut');
+    expect(artworkJsonLd({...work, state: 'sold'}).offers?.availability).toBe(
+      'https://schema.org/SoldOut',
+    );
   });
 });
 
@@ -199,5 +200,54 @@ describe('artist enquiry and Person data', () => {
       addressCountry: 'IN',
     });
     expect(data.image).toBeUndefined();
+  });
+});
+
+describe('sale states in the enquiry and the structured data', () => {
+  it('asks for the price, and gives none, when the price is on request', () => {
+    const asked = {...work, state: 'price_on_request' as const};
+    expect(subjectOf(enquiryMailto('hello@pjk.co.in', asked))).toBe(
+      'Price enquiry: Peacock at Dawn by Sita Devi',
+    );
+    const offer = artworkJsonLd(asked).offers as Record<string, unknown>;
+    expect(offer).not.toHaveProperty('price');
+    expect(offer).not.toHaveProperty('priceCurrency');
+    expect(offer.availability).toBe('https://schema.org/InStock');
+  });
+  it('marks a reserved work as reserved, and offers nothing for one not for sale', () => {
+    expect(
+      artworkJsonLd({...work, state: 'reserved'}).offers?.availability,
+    ).toBe('https://schema.org/Reserved');
+    expect(
+      artworkJsonLd({...work, state: 'not_for_sale'}).offers,
+    ).toBeUndefined();
+  });
+});
+
+describe('galleryJsonLd', () => {
+  const base = {
+    url: 'https://phulhaargallery.com',
+    email: 'hello@pjk.co.in',
+    phone: null,
+    mapUrl: null,
+    logo: 'https://phulhaargallery.com/brand/phulhaar-logo.png',
+  };
+  it('states an address only once there is one', () => {
+    expect(galleryJsonLd({...base, address: []}).address).toBeUndefined();
+    expect(
+      galleryJsonLd({...base, address: ['12 Park Street', 'Kolkata 700016']})
+        .address,
+    ).toEqual({
+      '@type': 'PostalAddress',
+      streetAddress: '12 Park Street',
+      addressLocality: 'Kolkata 700016',
+      addressCountry: 'IN',
+    });
+  });
+  it('is an ArtGallery with the enquiry email', () => {
+    const data = galleryJsonLd({...base, address: []});
+    expect(data['@type']).toBe('ArtGallery');
+    expect(data.email).toBe('hello@pjk.co.in');
+    expect(data.telephone).toBeUndefined();
   });
 });

@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
   activeFilters,
+  saleStateOf,
   catalogueEntry,
   catalogueFacets,
   catalogueHref,
@@ -100,6 +101,7 @@ describe('parseCatalogueFilters', () => {
       orientation: 'square',
       medium: 'Acrylic',
       tradition: 'Gond',
+      colour: '',
     });
     expect(
       parseCatalogueFilters(
@@ -199,5 +201,130 @@ describe('pills and links', () => {
       '/collections/all?available=1&size=small&medium=Acrylic&sort=price-low&page=2',
     );
     expect(catalogueHref(NO_FILTERS, 'featured')).toBe('/collections/all');
+  });
+});
+
+describe('saleStateOf', () => {
+  const v = (value: string) => ({value});
+  it('reads the availability field, stock and price together', () => {
+    expect(
+      saleStateOf({
+        availability: v('available'),
+        availableForSale: true,
+        price: '45000',
+      }),
+    ).toBe('available');
+    expect(
+      saleStateOf({
+        availability: v('price_on_request'),
+        availableForSale: true,
+        price: '0',
+      }),
+    ).toBe('price_on_request');
+    // The admin stores "price on request" as 0, so 0 alone reads the same way.
+    expect(
+      saleStateOf({
+        availability: v('available'),
+        availableForSale: true,
+        price: '0',
+      }),
+    ).toBe('price_on_request');
+    expect(
+      saleStateOf({
+        availability: v('reserved'),
+        availableForSale: true,
+        price: '100',
+      }),
+    ).toBe('reserved');
+    expect(
+      saleStateOf({
+        availability: v('on_hold'),
+        availableForSale: true,
+        price: '100',
+      }),
+    ).toBe('reserved');
+    expect(
+      saleStateOf({
+        availability: v('not_for_sale'),
+        availableForSale: true,
+        price: '100',
+      }),
+    ).toBe('not_for_sale');
+    expect(
+      saleStateOf({
+        availability: v('sold'),
+        availableForSale: true,
+        price: '100',
+      }),
+    ).toBe('sold');
+    // Out of stock is sold, whatever the field says.
+    expect(
+      saleStateOf({
+        availability: v('available'),
+        availableForSale: false,
+        price: '100',
+      }),
+    ).toBe('sold');
+  });
+  it('counts only works a buyer can still have as available', () => {
+    const reserved = catalogueEntry(
+      {
+        id: 'r',
+        handle: 'r',
+        title: 'r',
+        availableForSale: true,
+        availability: {value: 'reserved'},
+        priceRange: {minVariantPrice: {amount: '100', currencyCode: 'INR'}},
+      },
+      {traditions: [], tags: [], createdAt: '', rank: 0},
+    );
+    expect(reserved.available).toBe(false);
+  });
+});
+
+describe('colour filter', () => {
+  const coloured = (id: string, colours: Array<[string, string | null]>) =>
+    catalogueEntry(
+      {
+        id,
+        handle: id,
+        title: id,
+        availableForSale: true,
+        priceRange: {minVariantPrice: {amount: '100', currencyCode: 'INR'}},
+      },
+      {
+        traditions: [],
+        tags: [],
+        createdAt: '',
+        rank: 0,
+        colours: colours.map(([name, swatch]) => ({name, swatch})),
+      },
+    );
+  const list = [
+    coloured('a', [
+      ['Red', '#b8312f'],
+      ['Gold', '#c49a2c'],
+    ]),
+    coloured('b', [['Indigo', '#33307f']]),
+    coloured('c', [['Multicoloured', null]]),
+  ];
+  it('filters by colour and keeps the swatch for each option', () => {
+    const filters = parseCatalogueFilters(new URLSearchParams('colour=red'));
+    expect(filterCatalogue(list, filters).map((e) => e.work.id)).toEqual(['a']);
+    const facets = catalogueFacets(list, NO_FILTERS);
+    expect(facets.colour.find((o) => o.value === 'Indigo')?.swatch).toBe(
+      '#33307f',
+    );
+    expect(
+      facets.colour.find((o) => o.value === 'Multicoloured')?.swatch,
+    ).toBeNull();
+    expect(catalogueHref(filters, 'featured')).toBe(
+      '/collections/all?colour=red',
+    );
+  });
+  it('accepts the American spelling in the address', () => {
+    expect(
+      parseCatalogueFilters(new URLSearchParams('color=Blue')).colour,
+    ).toBe('Blue');
   });
 });

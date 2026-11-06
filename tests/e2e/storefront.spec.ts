@@ -159,3 +159,29 @@ for (const path of ['/artists?view=state', '/artists?letter=S&name=sita']) {
     await expect(page.locator('h1')).toBeVisible();
   });
 }
+
+test('the visit page explains visits before the address is set', async ({
+  page,
+}) => {
+  await page.goto('/visit');
+  await expect(page.getByRole('heading', {name: 'Where'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'When'})).toBeVisible();
+  await expect(page.getByText('8 November 2026').first()).toBeVisible();
+  const data = JSON.parse(
+    (await page
+      .locator('script[type="application/ld+json"]')
+      .first()
+      .textContent()) ?? '{}',
+  ) as {'@type'?: string; email?: string};
+  expect(data['@type']).toBe('ArtGallery');
+  expect(data.email).toBe('hello@pjk.co.in');
+});
+
+test('a colour filter shows as a pill', async ({page}) => {
+  await page.goto('/collections/all?colour=Indigo');
+  await expect(
+    page
+      .getByRole('list', {name: 'Filters in use'})
+      .getByRole('link', {name: 'Remove Indigo'}),
+  ).toBeVisible();
+});

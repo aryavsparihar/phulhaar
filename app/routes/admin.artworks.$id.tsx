@@ -34,6 +34,7 @@ import {
 } from '~/lib/schema-fields';
 import {requireStaff} from '~/lib/staff-session.server';
 import {ErrorList, FieldInput} from '~/components/admin/FieldInput';
+import {suggestColours} from '~/lib/colour';
 
 const REVIEW_KEYS = new Set(['review_status', 'review_notes', 'submitted_at']);
 const FIELDS = PRODUCT_METAFIELDS as FieldDef[];
@@ -240,6 +241,10 @@ export default function EditArtwork() {
   const values: Record<string, string> =
     artwork?.metafields ?? (presetArtist ? {artist: presetArtist} : {});
   const [previews, setPreviews] = useState<File[]>([]);
+  const [suggested, setSuggested] = useState<string[] | null>(null);
+  const colourNames = new Map(
+    (options.phulhaar_colour ?? []).map((o) => [o.handle ?? '', o.label]),
+  );
   const saved =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('saved');
@@ -346,13 +351,27 @@ export default function EditArtwork() {
                 />
                 {previews.length ? (
                   <div className="media-grid">
-                    {previews.map((file) => (
+                    {previews.map((file, index) => (
                       <FilePreview
                         key={`${file.name}-${file.size}-${file.lastModified}`}
                         file={file}
+                        onDrawn={
+                          index === 0
+                            ? (canvas) => setSuggested(applyColours(canvas))
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
+                ) : null}
+                {suggested?.length ? (
+                  <p className="notice" role="status">
+                    Colours suggested from the first photograph:{' '}
+                    {suggested
+                      .map((handle) => colourNames.get(handle) ?? handle)
+                      .join(', ')}
+                    . Check them under Dominant colours before saving.
+                  </p>
                 ) : null}
                 <small
                   className={fieldErrors.images ? 'error-text' : 'field-help'}
@@ -560,8 +579,45 @@ function Text({
  * A chosen photograph, drawn onto a canvas. Nothing from the file is ever put into the page as a
  * URL or markup, so there is nothing to escape.
  */
-function FilePreview({file}: {file: File}) {
+/**
+ * Reads the first photograph's colours and ticks them in the Dominant colours picker, unless
+ * staff have already chosen colours by hand. Returns what it suggested, or null if it did not.
+ */
+function applyColours(canvas: HTMLCanvasElement): string[] | null {
+  const context = canvas.getContext('2d', {willReadFrequently: true});
+  if (!context || !canvas.width || !canvas.height) return null;
+  const {data} = context.getImageData(0, 0, canvas.width, canvas.height);
+  const handles = suggestColours(data, canvas.width, canvas.height);
+  const fieldset = document.querySelector<HTMLFieldSetElement>(
+    'fieldset[data-field="colours"]',
+  );
+  if (!fieldset || !handles.length) return null;
+  if (fieldset.dataset.touched === 'true') return null;
+  const boxes = [
+    ...fieldset.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+  ];
+  if (!boxes.some((box) => handles.includes(box.dataset.handle ?? '')))
+    return null;
+  // Colours already saved on the work are kept, unless an earlier suggestion put them there.
+  if (fieldset.dataset.suggested !== 'true' && boxes.some((box) => box.checked))
+    return null;
+  for (const box of boxes)
+    box.checked = handles.includes(box.dataset.handle ?? '');
+  fieldset.dataset.suggested = 'true';
+  return handles;
+}
+
+function FilePreview({
+  file,
+  onDrawn,
+}: {
+  file: File;
+  onDrawn?: (canvas: HTMLCanvasElement) => void;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  // The latest callback, without redrawing the preview every time the parent renders.
+  const drawn = useRef(onDrawn);
+  drawn.current = onDrawn;
   useEffect(() => {
     let cancelled = false;
     createImageBitmap(file)
@@ -575,6 +631,7 @@ function FilePreview({file}: {file: File}) {
           .getContext('2d')
           ?.drawImage(bitmap, 0, 0, element.width, element.height);
         bitmap.close();
+        drawn.current?.(element);
       })
       .catch(() => {
         // Not an image the browser can read; the upload itself will say so.
