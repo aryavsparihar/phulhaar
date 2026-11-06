@@ -46,6 +46,7 @@ export const ARTWORK_CARD_FRAGMENT = `#graphql
       }
     }
     year: metafield(namespace: "phulhaar", key: "year") { value }
+    availability: metafield(namespace: "phulhaar", key: "availability") { value }
     heightCm: metafield(namespace: "phulhaar", key: "height_cm") { value }
     widthCm: metafield(namespace: "phulhaar", key: "width_cm") { value }
     depthCm: metafield(namespace: "phulhaar", key: "depth_cm") { value }
@@ -91,6 +92,7 @@ export interface ArtworkCardData {
       | null;
   } | null;
   year?: Field;
+  availability?: Field;
   heightCm?: Field;
   widthCm?: Field;
   depthCm?: Field;
@@ -116,6 +118,38 @@ export function numberOf(field: Field): number | undefined {
 export function isArtwork(product: Pick<ArtworkCardData, 'artist'>) {
   return !!product.artist?.reference;
 }
+
+/**
+ * Where a work stands for a buyer. Staff set `phulhaar.availability`; stock still decides "sold"
+ * for an original, and a price of 0 is how the admin stores "price on request".
+ */
+export type SaleState =
+  'available' | 'price_on_request' | 'reserved' | 'not_for_sale' | 'sold';
+
+export const SALE_LABELS: Record<Exclude<SaleState, 'available'>, string> = {
+  price_on_request: 'Price on request',
+  reserved: 'Reserved',
+  not_for_sale: 'Not for sale',
+  sold: 'Sold',
+};
+
+export function saleStateOf(work: {
+  availability?: Field;
+  availableForSale?: boolean | null;
+  price?: string | number | null;
+}): SaleState {
+  const value = work.availability?.value?.trim().toLowerCase() ?? '';
+  if (value === 'sold' || work.availableForSale === false) return 'sold';
+  if (value === 'reserved' || value === 'on_hold') return 'reserved';
+  if (value === 'not_for_sale') return 'not_for_sale';
+  const price = Number(work.price ?? 0);
+  if (value === 'price_on_request' || !(price > 0)) return 'price_on_request';
+  return 'available';
+}
+
+/** Whether a buyer can still have it: bought now, or asked for a price. */
+export const isObtainable = (state: SaleState) =>
+  state === 'available' || state === 'price_on_request';
 
 export function artistOf(product: Pick<ArtworkCardData, 'artist' | 'vendor'>) {
   const reference = product.artist?.reference;
@@ -213,6 +247,7 @@ export interface CatalogueEntry {
   orientation: Orientation | null;
   mediums: string[];
   traditions: string[];
+  colours: Array<{name: string; swatch: string | null}>;
   tags: string[];
   price: number;
   createdAt: string;
@@ -224,6 +259,7 @@ export function catalogueEntry(
   work: ArtworkCardData,
   extra: {
     traditions: string[];
+    colours?: Array<{name: string; swatch: string | null}>;
     tags: string[];
     createdAt: string;
     rank: number;
@@ -237,11 +273,18 @@ export function catalogueEntry(
       : null;
   return {
     work,
-    available: !!work.availableForSale,
+    available: isObtainable(
+      saleStateOf({
+        availability: work.availability,
+        availableForSale: work.availableForSale,
+        price: work.priceRange.minVariantPrice.amount,
+      }),
+    ),
     size: dims ? sizeBandOf(dims) : null,
     orientation: dims ? orientationOf(dims) : null,
     mediums: namesOf(work.mediums),
     traditions: extra.traditions,
+    colours: extra.colours ?? [],
     tags: extra.tags,
     price: Number(work.priceRange.minVariantPrice.amount) || 0,
     createdAt: extra.createdAt,
@@ -256,6 +299,7 @@ export interface CatalogueFilters {
   orientation: Orientation | null;
   medium: string;
   tradition: string;
+  colour: string;
 }
 
 const text = (value: string | null) => value?.trim().slice(0, 60) ?? '';
@@ -276,6 +320,7 @@ export function parseCatalogueFilters(
         : null,
     medium: text(params.get('medium')),
     tradition: text(params.get('tradition')),
+    colour: text(params.get('colour') ?? params.get('color')),
   };
 }
 
@@ -316,6 +361,15 @@ function passes(
     !includes(entry.traditions, filters.tradition)
   )
     return false;
+  if (
+    ignore !== 'colour' &&
+    filters.colour &&
+    !includes(
+      entry.colours.map((c) => c.name),
+      filters.colour,
+    )
+  )
+    return false;
   return true;
 }
 
@@ -330,7 +384,11 @@ export interface FacetOption {
   value: string;
   label: string;
   count: number;
+  /** A colour option's swatch, "#rrggbb". */
+  swatch?: string | null;
 }
+
+const HEX = /^#[0-9a-f]{6}$/i;
 
 function tally(values: string[][]): FacetOption[] {
   const counts = new Map<string, FacetOption>();
@@ -379,6 +437,20 @@ export function catalogueFacets(
     ),
     medium: tally(without('medium').map((entry) => entry.mediums)),
     tradition: tally(without('tradition').map((entry) => entry.traditions)),
+    colour: (() => {
+      const list = without('colour');
+      const swatches = new Map<string, string>();
+      for (const entry of list)
+        for (const colour of entry.colours)
+          if (colour.swatch && HEX.test(colour.swatch))
+            swatches.set(colour.name.toLowerCase(), colour.swatch);
+      return tally(list.map((entry) => entry.colours.map((c) => c.name))).map(
+        (option) => ({
+          ...option,
+          swatch: swatches.get(option.value.toLowerCase()) ?? null,
+        }),
+      );
+    })(),
   };
 }
 
@@ -417,6 +489,7 @@ export function activeFilters(filters: CatalogueFilters) {
   if (filters.medium) pills.push({key: 'medium', label: filters.medium});
   if (filters.tradition)
     pills.push({key: 'tradition', label: filters.tradition});
+  if (filters.colour) pills.push({key: 'colour', label: filters.colour});
   return pills;
 }
 
@@ -433,6 +506,7 @@ export function catalogueHref(
   if (filters.orientation) params.set('orientation', filters.orientation);
   if (filters.medium) params.set('medium', filters.medium);
   if (filters.tradition) params.set('tradition', filters.tradition);
+  if (filters.colour) params.set('colour', filters.colour);
   if (sort !== 'featured') params.set('sort', sort);
   if (page > 1) params.set('page', String(page));
   const query = params.toString();
@@ -446,4 +520,5 @@ export const NO_FILTERS: CatalogueFilters = {
   orientation: null,
   medium: '',
   tradition: '',
+  colour: '',
 };

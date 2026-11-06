@@ -127,6 +127,9 @@ export default function Catalogue() {
         {filters.tag ? (
           <input type="hidden" name="tag" value={filters.tag} />
         ) : null}
+        {filters.colour ? (
+          <input type="hidden" name="colour" value={filters.colour} />
+        ) : null}
         <label className="facet-check">
           <input
             type="checkbox"
@@ -177,6 +180,31 @@ export default function Catalogue() {
           </button>
         </noscript>
       </Form>
+
+      {facets.colour.length ? (
+        <nav className="swatches" aria-label="Filter by colour">
+          <span className="swatches-label">Colour</span>
+          {facets.colour.map((option) => {
+            const active =
+              filters.colour.toLowerCase() === option.value.toLowerCase();
+            return (
+              <Link
+                key={option.value}
+                className={`swatch${active ? ' active' : ''}`}
+                to={withFilter({colour: active ? '' : option.value})}
+                aria-current={active ? 'true' : undefined}
+                aria-label={`${option.label} (${option.count})`}
+                title={`${option.label} (${option.count})`}
+                style={option.swatch ? {background: option.swatch} : undefined}
+              >
+                {option.swatch ? null : (
+                  <span aria-hidden="true">{option.label.charAt(0)}</span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
 
       <div className="facet-summary" aria-live="polite">
         <p className="muted" style={{margin: 0}}>

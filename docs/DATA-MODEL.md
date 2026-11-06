@@ -70,7 +70,7 @@ the native variant weight. Everything else is a metafield:
 | `phulhaar.ships_from_state` | ref       | artist      | yes    |
 | `phulhaar.dispatch_days`    | integer   | artist      | —      |
 | `phulhaar.availability`     | text      | staff       | yes    |
-| `phulhaar.colours`          | ref list  | computed    | yes    |
+| `phulhaar.colours`          | ref list  | staff       | yes    |
 | `phulhaar.review_status`    | text      | staff       | —      |
 | `phulhaar.review_notes`     | long text | staff       | —      |
 | `phulhaar.submitted_at`     | date_time | computed    | —      |

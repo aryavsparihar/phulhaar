@@ -21,6 +21,8 @@ import {
   artistOf,
   belongsTo,
   dimensionsOf,
+  SALE_LABELS,
+  saleStateOf,
   namesOf,
   numberOf,
   type ArtworkCardData,
@@ -140,7 +142,13 @@ export default function Artwork() {
     product.surface?.reference && 'field' in product.surface.reference
       ? product.surface.reference.field?.value
       : null;
-  const available = !!selectedVariant?.availableForSale;
+  const state = saleStateOf({
+    availability: product.availability,
+    availableForSale: selectedVariant?.availableForSale ?? false,
+    price: selectedVariant?.price.amount,
+  });
+  // Bought online only when it is really for sale at a real price.
+  const buyable = state === 'available' && !!selectedVariant;
   const enquiryEmail = root?.enquiryEmail ?? 'hello@pjk.co.in';
   const heightCm = numberOf(product.heightCm) ?? null;
   const widthCm = numberOf(product.widthCm) ?? null;
@@ -158,7 +166,7 @@ export default function Artwork() {
     description: product.description || null,
     images: images.map((img) => img.url),
     price: selectedVariant?.price ?? null,
-    available,
+    state,
   };
   const enquiry = enquiryMailto(enquiryEmail, facts);
   const recent = useMemo(
@@ -293,21 +301,27 @@ export default function Artwork() {
           <hr className="gold-rule" />
 
           <div className="artwork-price">
-            {available && selectedVariant ? (
+            {buyable ? (
               <Money data={selectedVariant.price} withoutTrailingZeros />
             ) : (
-              <span className="art-card-sold">Sold</span>
+              <span className={`art-card-state art-card-${state}`}>
+                {state === 'available'
+                  ? SALE_LABELS.price_on_request
+                  : SALE_LABELS[state]}
+              </span>
             )}
           </div>
 
           {/* Release 1 is enquiry-first: a conversation with the gallery is the main way to buy. */}
           <div className="artwork-actions">
             <a className="btn btn-block" href={enquiry}>
-              {available
-                ? 'Enquire about this work'
-                : `Ask about similar works${artist.name ? ` by ${artist.name}` : ''}`}
+              {state === 'sold'
+                ? `Ask about similar works${artist.name ? ` by ${artist.name}` : ''}`
+                : state === 'price_on_request'
+                  ? 'Ask for the price'
+                  : 'Enquire about this work'}
             </a>
-            {available ? (
+            {buyable ? (
               <div className="artwork-buy">
                 <AddToCartButton
                   lines={lines}
@@ -493,6 +507,7 @@ const ARTWORK_QUERY = `#graphql
       }
       adjacentVariants(selectedOptions: $selectedOptions) { ...ArtworkVariant }
       seo { description title }
+      availability: metafield(namespace: "phulhaar", key: "availability") { value }
       artist: metafield(namespace: "phulhaar", key: "artist") {
         reference {
           ... on Metaobject {
