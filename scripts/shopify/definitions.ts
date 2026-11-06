@@ -738,7 +738,8 @@ export const PRODUCT_METAFIELDS: ProductMetafield[] = [
       'reads wrongly -- a photograph of a painting under warm light often does.',
     type: 'list.metaobject_reference',
     validations: reference('phulhaar_colour'),
-    editor: 'computed',
+    // Suggested in the admin from the first photograph, then confirmed or corrected by staff.
+    editor: 'staff',
     filter: true,
   },
 

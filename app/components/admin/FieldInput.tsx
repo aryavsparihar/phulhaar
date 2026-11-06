@@ -8,7 +8,10 @@ import {
   type FieldDef,
 } from '~/lib/schema-fields';
 
-type Options = Record<string, Array<{id: string; label: string}>>;
+type Options = Record<
+  string,
+  Array<{id: string; label: string; handle?: string}>
+>;
 
 function parseList(value: string | undefined): string[] {
   if (!value) return [];
@@ -187,7 +190,7 @@ function MultiPick({
   field: FieldDef;
   name: string;
   selected: string[];
-  options: Array<{id: string; label: string}>;
+  options: Array<{id: string; label: string; handle?: string}>;
   error?: string;
 }) {
   const [filter, setFilter] = useState('');
@@ -195,7 +198,14 @@ function MultiPick({
     option.label.toLowerCase().includes(filter.toLowerCase()),
   );
   return (
-    <fieldset className={`field multipick${error ? ' field-error' : ''}`}>
+    <fieldset
+      className={`field multipick${error ? ' field-error' : ''}`}
+      data-field={field.key}
+      // Once staff choose by hand, nothing chosen for them overwrites it.
+      onChange={(event) => {
+        if (event.isTrusted) event.currentTarget.dataset.touched = 'true';
+      }}
+    >
       <legend>{field.name}</legend>
       {options.length > 12 ? (
         <input
@@ -216,6 +226,7 @@ function MultiPick({
               type="checkbox"
               name={name}
               value={option.id}
+              data-handle={option.handle}
               defaultChecked={selected.includes(option.id)}
             />
             {option.label}

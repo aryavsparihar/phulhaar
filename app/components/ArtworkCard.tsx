@@ -4,6 +4,8 @@ import {
   artistOf,
   captionOf,
   dimensionsOf,
+  SALE_LABELS,
+  saleStateOf,
   type ArtworkCardData,
 } from '~/lib/catalogue';
 
@@ -18,6 +20,11 @@ export function ArtworkCard({
   const artist = artistOf(product);
   const caption = captionOf(product);
   const dimensions = dimensionsOf(product);
+  const state = saleStateOf({
+    availability: product.availability,
+    availableForSale: product.availableForSale,
+    price: product.priceRange.minVariantPrice.amount,
+  });
 
   return (
     <Link
@@ -48,13 +55,15 @@ export function ArtworkCard({
         </p>
       ) : null}
       <div className="art-card-price">
-        {product.availableForSale === false ? (
-          <span className="art-card-sold">Sold</span>
-        ) : (
+        {state === 'available' ? (
           <Money
             data={product.priceRange.minVariantPrice}
             withoutTrailingZeros
           />
+        ) : (
+          <span className={`art-card-state art-card-${state}`}>
+            {SALE_LABELS[state]}
+          </span>
         )}
       </div>
     </Link>

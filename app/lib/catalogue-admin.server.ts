@@ -20,7 +20,10 @@ type UserErrors = Array<{field?: string[] | null; message: string}>;
 // ---------------------------------------------------------------------------------------------
 // Options for reference fields
 
-export type Options = Record<string, Array<{id: string; label: string}>>;
+export type Options = Record<
+  string,
+  Array<{id: string; label: string; handle?: string}>
+>;
 
 /** Every entry of each metaobject type, as select options. */
 export async function loadOptions(
@@ -47,6 +50,7 @@ export async function loadOptions(
         metaobjects.nodes.map((node) => ({
           id: node.id,
           label: node.displayName || node.handle,
+          handle: node.handle,
         })),
       ] as const;
     }),
