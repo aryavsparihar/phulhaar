@@ -134,7 +134,7 @@ export async function action({context, params, request}: Route.ActionArgs) {
     }
 
     // Save.
-    const parsed = parseFields(form, FIELDS);
+    const parsed = parseFields(form, DETAIL_FIELDS);
     const fieldErrors: Record<string, string> = {...parsed.errors};
     const title = String(form.get('title') ?? '').trim();
     const price = String(form.get('price') ?? '')
@@ -337,7 +337,7 @@ export default function EditArtwork() {
 
             <section className="panel">
               <h2>Photographs</h2>
-              {artwork?.media.length ? (
+              {artwork?.media.length || artwork?.processingMedia ? (
                 <div className="media-grid">
                   {artwork.media.map((media) => (
                     <label key={media.id} className="media-item">
@@ -351,6 +351,16 @@ export default function EditArtwork() {
                         Remove
                       </span>
                     </label>
+                  ))}
+                  {Array.from({length: artwork.processingMedia}, (_, i) => (
+                    <div
+                      key={`processing-${i}`}
+                      className="media-item media-processing"
+                      role="status"
+                    >
+                      <span>Shopify is still processing this photograph.</span>
+                      <a href="?">Refresh</a>
+                    </div>
                   ))}
                 </div>
               ) : null}

@@ -234,3 +234,11 @@ test('the cart never redirects a buyer to somebody else’s site', async ({
   expect(response.status()).toBe(200);
   expect(response.headers()['location']).toBeUndefined();
 });
+
+test('Release 1 sells by enquiry: no cart in the header or footer', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('header a[href="/cart"]')).toHaveCount(0);
+  await expect(page.locator('footer a[href="/cart"]')).toHaveCount(0);
+});

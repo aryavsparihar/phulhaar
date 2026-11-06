@@ -83,6 +83,12 @@ export function HeaderMenu({viewport}: {viewport: Viewport}) {
   );
 }
 
+/**
+ * Release 1 sells by enquiry, with Razorpay checkout in a later release, so there is no cart to
+ * open. The /cart route and the cart itself stay in place, ready for when it returns.
+ */
+const SHOW_CART = false;
+
 function HeaderCtas({cart}: Pick<HeaderProps, 'cart'>) {
   return (
     <nav className="header-ctas" aria-label="Shop">
@@ -90,7 +96,7 @@ function HeaderCtas({cart}: Pick<HeaderProps, 'cart'>) {
       <NavLink prefetch="intent" to="/studio" className="hide-small">
         Artist sign-in
       </NavLink>
-      <CartToggle cart={cart} />
+      {SHOW_CART ? <CartToggle cart={cart} /> : null}
       <HeaderMenuMobileToggle />
     </nav>
   );

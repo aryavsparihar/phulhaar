@@ -52,9 +52,6 @@ export function Footer({enquiryEmail}: {enquiryEmail: string}) {
             <li>
               <Link to="/policies">Policies</Link>
             </li>
-            <li>
-              <Link to="/cart">Your cart</Link>
-            </li>
           </ul>
         </div>
       </div>
