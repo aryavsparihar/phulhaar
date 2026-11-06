@@ -97,7 +97,7 @@ export function namesOf(field: NamedNodes): string[] {
     .filter((name): name is string => !!name);
 }
 
-function numberOf(field: Field): number | undefined {
+export function numberOf(field: Field): number | undefined {
   const value = field?.value ? Number(field.value) : NaN;
   return Number.isFinite(value) && value > 0 ? value : undefined;
 }

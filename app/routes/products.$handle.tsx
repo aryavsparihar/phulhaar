@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {Link, useLoaderData, useRouteLoaderData} from 'react-router';
 import type {Route} from './+types/products.$handle';
 import {
@@ -19,10 +19,25 @@ import {
   isArtwork,
   ARTWORK_CARD_FRAGMENT,
   artistOf,
+  belongsTo,
   dimensionsOf,
   namesOf,
+  numberOf,
   type ArtworkCardData,
 } from '~/lib/catalogue';
+import {parseEnv} from '~/lib/env.server';
+import {
+  artworkJsonLd,
+  enquiryMailto,
+  jsonForScript,
+  type ArtworkFacts,
+} from '~/lib/artwork-page';
+import {
+  Lightbox,
+  RecentlyViewed,
+  RoomView,
+  ShareButton,
+} from '~/components/ArtworkViewers';
 
 export const meta: Route.MetaFunction = ({data}) => {
   if (!data) return [{title: 'Phulhaar Gallery'}];
@@ -36,7 +51,7 @@ export const meta: Route.MetaFunction = ({data}) => {
       name: 'description',
       content: product.seo?.description || product.description.slice(0, 160),
     },
-    {rel: 'canonical', href: `/products/${product.handle}`},
+    {tagName: 'link', rel: 'canonical', href: data.canonicalUrl},
   ];
 };
 
@@ -55,26 +70,51 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 
   redirectIfHandleIsLocalized(request, {handle, data: product});
 
-  // More by the same artist, then anything else, without blocking the page.
-  const artistName = artistOf(product).name;
-  const related = storefront
-    .query(RELATED_QUERY, {
-      variables: {
-        query: artistName ? `vendor:"${artistName.replace(/"/g, '')}"` : null,
-      },
-    })
-    .then(({products}) =>
-      (products.nodes as ArtworkCardData[])
-        .filter((p) => p.id !== product.id && isArtwork(p))
-        .slice(0, 4),
-    )
-    .catch(() => [] as ArtworkCardData[]);
+  // The canonical address: the configured site, or this request's own origin before it is set.
+  const config = parseEnv(context.env);
+  const origin = (
+    config.PHULHAAR_SITE_URL ?? new URL(request.url).origin
+  ).replace(/\/$/, '');
+  const canonicalUrl = `${origin}/products/${product.handle}`;
 
-  return {product, related: await related};
+  // More by the same artist (the admin sets vendor to the artist's name), then the gallery's
+  // other works to fill the row. Both at once, and neither can fail the page.
+  const owner = artistOf(product);
+  const others = (nodes: unknown[]) =>
+    (nodes as ArtworkCardData[]).filter(
+      (p) => p.id !== product.id && isArtwork(p),
+    );
+  const [byArtist, gallery] = await Promise.all([
+    owner.name
+      ? storefront
+          .query(RELATED_QUERY, {
+            variables: {
+              first: 12,
+              query: `vendor:"${owner.name.replace(/"/g, '')}"`,
+            },
+          })
+          .then(({products}) =>
+            others(products.nodes).filter((p) => belongsTo(p, owner)),
+          )
+          .catch(() => [] as ArtworkCardData[])
+      : Promise.resolve([] as ArtworkCardData[]),
+    storefront
+      .query(RELATED_QUERY, {variables: {first: 12, query: null}})
+      .then(({products}) => others(products.nodes))
+      .catch(() => [] as ArtworkCardData[]),
+  ]);
+  const moreByArtist = byArtist.slice(0, 4);
+  const taken = new Set(moreByArtist.map((p) => p.id));
+  const fill = gallery
+    .filter((p) => !taken.has(p.id))
+    .slice(0, Math.max(0, 4 - moreByArtist.length));
+
+  return {product, canonicalUrl, moreByArtist, fill};
 }
 
 export default function Artwork() {
-  const {product, related} = useLoaderData<typeof loader>();
+  const {product, canonicalUrl, moreByArtist, fill} =
+    useLoaderData<typeof loader>();
   const root = useRouteLoaderData<RootLoader>('root');
   const {open} = useAside();
 
@@ -86,6 +126,10 @@ export default function Artwork() {
 
   const images = product.images.nodes;
   const [current, setCurrent] = useState(0);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const [room, setRoom] = useState(false);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const closeRoom = useCallback(() => setRoom(false), []);
   const image = images[current] ?? selectedVariant?.image;
 
   const artist = artistOf(product);
@@ -98,11 +142,34 @@ export default function Artwork() {
       : null;
   const available = !!selectedVariant?.availableForSale;
   const enquiryEmail = root?.enquiryEmail ?? 'hello@pjk.co.in';
-  const enquiry = `mailto:${enquiryEmail}?subject=${encodeURIComponent(
-    `Enquiry: ${product.title}${artist.name ? ` by ${artist.name}` : ''}`,
-  )}&body=${encodeURIComponent(
-    `I would like to know more about this work:\n${product.title}\n\n`,
-  )}`;
+  const heightCm = numberOf(product.heightCm) ?? null;
+  const widthCm = numberOf(product.widthCm) ?? null;
+  const facts: ArtworkFacts = {
+    title: product.title,
+    url: canonicalUrl,
+    artist: artist.name,
+    year: product.year?.value ?? null,
+    medium: mediums.join(', ') || product.productType || null,
+    surface: surface ?? null,
+    dimensions,
+    heightCm,
+    widthCm,
+    depthCm: numberOf(product.depthCm) ?? null,
+    description: product.description || null,
+    images: images.map((img) => img.url),
+    price: selectedVariant?.price ?? null,
+    available,
+  };
+  const enquiry = enquiryMailto(enquiryEmail, facts);
+  const recent = useMemo(
+    () => ({
+      handle: product.handle,
+      title: product.title,
+      artist: artist.name,
+      image: images[0]?.url ?? null,
+    }),
+    [product.handle, product.title, artist.name, images],
+  );
 
   const lines = selectedVariant
     ? [{merchandiseId: selectedVariant.id, quantity: 1, selectedVariant}]
@@ -151,11 +218,12 @@ export default function Artwork() {
         <div>
           <div className="artwork-stage">
             {image ? (
-              <a
-                href={image.url}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Open the full-size image"
+              <button
+                type="button"
+                className="artwork-open"
+                onClick={() => setLightbox(images[current] ? current : null)}
+                aria-label="View full screen"
+                disabled={!images[current]}
               >
                 <Image
                   data={image}
@@ -163,7 +231,7 @@ export default function Artwork() {
                   sizes="(min-width: 60em) 55vw, 100vw"
                   loading="eager"
                 />
-              </a>
+              </button>
             ) : (
               <span className="muted">Image to follow</span>
             )}
@@ -188,6 +256,15 @@ export default function Artwork() {
                 </button>
               ))}
             </div>
+          ) : null}
+          {heightCm && widthCm ? (
+            <button
+              type="button"
+              className="link-arrow artwork-room-link"
+              onClick={() => setRoom(true)}
+            >
+              View in a room
+            </button>
           ) : null}
         </div>
 
@@ -223,13 +300,19 @@ export default function Artwork() {
             )}
           </div>
 
+          {/* Release 1 is enquiry-first: a conversation with the gallery is the main way to buy. */}
           <div className="artwork-actions">
+            <a className="btn btn-block" href={enquiry}>
+              {available
+                ? 'Enquire about this work'
+                : `Ask about similar works${artist.name ? ` by ${artist.name}` : ''}`}
+            </a>
             {available ? (
-              <>
+              <div className="artwork-buy">
                 <AddToCartButton
                   lines={lines}
                   redirectTo="__checkout"
-                  className="btn btn-block"
+                  className="btn btn-quiet btn-block"
                 >
                   Buy now
                 </AddToCartButton>
@@ -240,11 +323,9 @@ export default function Artwork() {
                 >
                   Add to cart
                 </AddToCartButton>
-              </>
+              </div>
             ) : null}
-            <a className="btn btn-quiet btn-block" href={enquiry}>
-              Enquire about this work
-            </a>
+            <ShareButton title={product.title} url={canonicalUrl} />
           </div>
 
           <dl className="details">
@@ -275,19 +356,64 @@ export default function Artwork() {
         </div>
       </div>
 
-      {related.length > 0 ? (
+      {moreByArtist.length > 0 ? (
+        <section className="section" style={{paddingTop: 0}}>
+          <div className="section-head">
+            <h2>More by {artist.name}</h2>
+            {artist.handle ? (
+              <Link className="link-arrow" to={`/artists/${artist.handle}`}>
+                All their work
+              </Link>
+            ) : null}
+          </div>
+          <ArtworkGrid products={moreByArtist} eager={0} />
+        </section>
+      ) : null}
+
+      {fill.length > 0 ? (
         <section className="section" style={{paddingTop: 0}}>
           <div className="section-head">
             <h2>
-              {artist.name ? `More from the gallery` : 'You may also like'}
+              {moreByArtist.length
+                ? 'More from the gallery'
+                : 'You may also like'}
             </h2>
             <Link className="link-arrow" to="/collections/all">
               All artworks
             </Link>
           </div>
-          <ArtworkGrid products={related} eager={0} />
+          <ArtworkGrid products={fill} eager={0} />
         </section>
       ) : null}
+
+      <RecentlyViewed work={recent} />
+
+      <Lightbox
+        images={images}
+        index={lightbox}
+        title={product.title}
+        onIndex={(index) => {
+          setLightbox(index);
+          setCurrent(index);
+        }}
+        onClose={closeLightbox}
+      />
+      {heightCm && widthCm ? (
+        <RoomView
+          open={room}
+          onClose={closeRoom}
+          image={images[0] ?? null}
+          title={product.title}
+          heightCm={heightCm}
+          widthCm={widthCm}
+        />
+      ) : null}
+
+      <script
+        type="application/ld+json"
+        // Escaped for a script element by jsonForScript; the data is the store's own.
+        dangerouslySetInnerHTML={{__html: jsonForScript(artworkJsonLd(facts))}}
+      />
 
       <Analytics.ProductView
         data={{
@@ -400,9 +526,9 @@ const ARTWORK_QUERY = `#graphql
 ` as const;
 
 const RELATED_QUERY = `#graphql
-  query RelatedArtworks($country: CountryCode, $language: LanguageCode, $query: String)
+  query RelatedArtworks($country: CountryCode, $language: LanguageCode, $query: String, $first: Int!)
   @inContext(country: $country, language: $language) {
-    products(first: 5, query: $query, sortKey: BEST_SELLING) {
+    products(first: $first, query: $query, sortKey: BEST_SELLING) {
       nodes { ...ArtworkCard }
     }
   }
