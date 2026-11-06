@@ -16,6 +16,7 @@ import {ArtworkGrid} from '~/components/ArtworkCard';
 import {useAside} from '~/components/Aside';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {
+  isArtwork,
   ARTWORK_CARD_FRAGMENT,
   artistOf,
   dimensionsOf,
@@ -49,7 +50,8 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     variables: {handle, selectedOptions: getSelectedProductOptions(request)},
   });
 
-  if (!product?.id) throw new Response(null, {status: 404});
+  if (!product?.id || !isArtwork(product))
+    throw new Response(null, {status: 404});
 
   redirectIfHandleIsLocalized(request, {handle, data: product});
 
@@ -63,7 +65,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     })
     .then(({products}) =>
       (products.nodes as ArtworkCardData[])
-        .filter((p) => p.id !== product.id)
+        .filter((p) => p.id !== product.id && isArtwork(p))
         .slice(0, 4),
     )
     .catch(() => [] as ArtworkCardData[]);
@@ -95,7 +97,7 @@ export default function Artwork() {
       ? product.surface.reference.field?.value
       : null;
   const available = !!selectedVariant?.availableForSale;
-  const enquiryEmail = root?.enquiryEmail ?? 'hello@phulhaargallery.com';
+  const enquiryEmail = root?.enquiryEmail ?? 'hello@pjk.co.in';
   const enquiry = `mailto:${enquiryEmail}?subject=${encodeURIComponent(
     `Enquiry: ${product.title}${artist.name ? ` by ${artist.name}` : ''}`,
   )}&body=${encodeURIComponent(

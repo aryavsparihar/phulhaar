@@ -102,6 +102,15 @@ function numberOf(field: Field): number | undefined {
   return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
+/**
+ * Whether a product is an artwork: every live artwork names its artist (the field is required in
+ * the admin). Anything else in the store, such as mock.shop's sample clothes before the real store
+ * is connected, is not shown.
+ */
+export function isArtwork(product: Pick<ArtworkCardData, 'artist'>) {
+  return !!product.artist?.reference;
+}
+
 export function artistOf(product: Pick<ArtworkCardData, 'artist' | 'vendor'>) {
   const reference = product.artist?.reference;
   const name =
