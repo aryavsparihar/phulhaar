@@ -9,6 +9,8 @@ import {
   isEditable,
   parseFields,
   PATTERNS,
+  reviewStatusFor,
+  computeArtworkFields,
   staffFields,
   type FieldDef,
 } from './schema-fields';
@@ -73,5 +75,27 @@ describe('the admin artwork form', () => {
       'Price: Digits only',
       'Photographs: A live work needs at least one photograph',
     ]);
+  });
+});
+
+describe('reviewStatusFor', () => {
+  it('approves a live work and drafts a draft when the work has no review status', () => {
+    expect(reviewStatusFor('ACTIVE')).toBe('approved');
+    expect(reviewStatusFor('DRAFT', null)).toBe('draft');
+    expect(reviewStatusFor('ARCHIVED')).toBeNull();
+  });
+
+  it('keeps a review status the work already has', () => {
+    expect(reviewStatusFor('ACTIVE', 'in_review')).toBe('in_review');
+  });
+});
+
+describe('computed artwork fields', () => {
+  it('works out orientation and size band from the measurements', () => {
+    expect(computeArtworkFields({height_cm: '60', width_cm: '90'})).toEqual({
+      orientation: 'landscape',
+      size_band: expect.any(String),
+    });
+    expect(computeArtworkFields({height_cm: '', width_cm: '90'})).toEqual({});
   });
 });

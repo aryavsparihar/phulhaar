@@ -204,6 +204,21 @@ export function computeArtworkFields(values: Record<string, string>) {
   } as Record<string, string>;
 }
 
+/**
+ * The review status a staff save leaves: whatever the work already has, otherwise approved for a
+ * live work and draft for a draft. Staff are the reviewers, so their own live work needs no
+ * second review; an archived work without one is left without one.
+ */
+export function reviewStatusFor(
+  status: string,
+  current?: string | null,
+): string | null {
+  if (current) return current;
+  if (status === 'ACTIVE') return 'approved';
+  if (status === 'DRAFT') return 'draft';
+  return null;
+}
+
 /** Tags as people type them: commas or new lines, trimmed, de-duplicated, at most 40 characters. */
 export function parseTags(raw: string): string[] {
   const seen = new Map<string, string>();
