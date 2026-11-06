@@ -27,7 +27,9 @@ import {
 } from '~/lib/catalogue-admin.server';
 import {
   PRODUCT_METAFIELDS,
+  errorDetail,
   parseFields,
+  staffFields,
   parseTags,
   referencedTypes,
   type FieldDef,
@@ -37,7 +39,15 @@ import {ErrorList, FieldInput} from '~/components/admin/FieldInput';
 import {suggestColours} from '~/lib/colour';
 
 const REVIEW_KEYS = new Set(['review_status', 'review_notes', 'submitted_at']);
-const FIELDS = PRODUCT_METAFIELDS as FieldDef[];
+// Staff choose the artist here; everywhere else it is set for them.
+const FIELDS = staffFields(PRODUCT_METAFIELDS as FieldDef[]);
+const OTHER_LABELS = {
+  title: 'Title',
+  price: 'Price',
+  compareAtPrice: 'Earlier price',
+  status: 'Status',
+  images: 'Photographs',
+};
 const DETAIL_FIELDS = FIELDS.filter((field) => !REVIEW_KEYS.has(field.key));
 const REVIEW_FIELDS = FIELDS.filter((field) => REVIEW_KEYS.has(field.key));
 const TYPES = Object.fromEntries(
@@ -159,7 +169,10 @@ export async function action({context, params, request}: Route.ActionArgs) {
 
     if (Object.keys(fieldErrors).length) {
       return {
-        error: {message: 'Some fields need attention', detail: []},
+        error: {
+          message: 'Some fields need attention',
+          detail: errorDetail(fieldErrors, FIELDS, OTHER_LABELS),
+        },
         fieldErrors,
       };
     }
@@ -274,7 +287,14 @@ export default function EditArtwork() {
       {saved ? <p className="notice">Saved.</p> : null}
       <ErrorList error={result?.error ?? error} />
 
-      <Form method="post" encType="multipart/form-data" className="admin-form">
+      <Form
+        method="post"
+        encType="multipart/form-data"
+        className="admin-form"
+        // The server checks every field and lists every problem at the top; the browser's own
+        // check would stop at the first, often out of sight.
+        noValidate
+      >
         <input type="hidden" name="intent" value="save" />
         <div className="admin-columns">
           <div>

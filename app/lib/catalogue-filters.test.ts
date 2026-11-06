@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
   activeFilters,
   saleStateOf,
+  stockFor,
   catalogueEntry,
   catalogueFacets,
   catalogueHref,
@@ -326,5 +327,36 @@ describe('colour filter', () => {
     expect(
       parseCatalogueFilters(new URLSearchParams('color=Blue')).colour,
     ).toBe('Blue');
+  });
+});
+
+describe('stockFor', () => {
+  it('keeps one of an original until it sells, then none', () => {
+    expect(stockFor({availability: 'available'})).toBe(1);
+    expect(stockFor({rarity: 'original', availability: 'sold'})).toBe(0);
+    expect(stockFor({})).toBe(1);
+  });
+
+  it('keeps one for reserved and enquiry-only works, which no stock would show as sold', () => {
+    for (const availability of [
+      'reserved',
+      'price_on_request',
+      'not_for_sale',
+    ]) {
+      expect(stockFor({availability})).toBe(1);
+      expect(
+        saleStateOf({
+          availability: {value: availability},
+          availableForSale: true,
+          price: 100,
+        }),
+      ).not.toBe('sold');
+    }
+  });
+
+  it('leaves editions and prints to the count staff set', () => {
+    expect(
+      stockFor({rarity: 'limited_edition', availability: 'sold'}),
+    ).toBeNull();
   });
 });

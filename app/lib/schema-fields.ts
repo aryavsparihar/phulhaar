@@ -67,6 +67,35 @@ export function isEditable(field: FieldDef) {
   return field.editor !== 'computed' && field.editor !== 'pjk';
 }
 
+/**
+ * The fields as gallery staff edit them in /admin. The artist is owned by PJK for an artist's own
+ * submissions (the studio sets it from the signed-in Artist ID), but staff adding a work must
+ * choose who made it, so here it is an ordinary required choice.
+ */
+export function staffFields(fields: FieldDef[]): FieldDef[] {
+  return fields.map((field) =>
+    field.key === 'artist' ? {...field, editor: 'staff'} : field,
+  );
+}
+
+/** Field errors as lines for the summary at the top of a form: "Artist: Artist is required". */
+export function errorDetail(
+  errors: Record<string, string>,
+  fields: FieldDef[],
+  extraLabels: Record<string, string> = {},
+): string[] {
+  const labels = new Map<string, string>([
+    ...fields.map((field) => [field.key, field.name] as [string, string]),
+    ...Object.entries(extraLabels),
+  ]);
+  return Object.entries(errors).map(([key, message]) => {
+    const label = labels.get(key) ?? labelOf(key);
+    return message.toLowerCase().startsWith(label.toLowerCase())
+      ? message
+      : `${label}: ${message}`;
+  });
+}
+
 export const FIELD_PREFIX = 'f.';
 
 export interface ParsedFields {
