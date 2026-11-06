@@ -119,3 +119,9 @@ test('the search API answers with JSON', async ({request}) => {
   const body = await response.json();
   expect(Array.isArray(body.works)).toBe(true);
 });
+
+test('a product that is not an artwork is not shown as one', async ({page}) => {
+  // mock.shop's sample clothes have no artist, so their pages answer 404.
+  const response = await page.goto('/products/sweatpants');
+  expect(response?.status()).toBe(404);
+});
