@@ -6,6 +6,7 @@
 import type {Storefront} from '@shopify/hydrogen';
 import type {SearchCorpusQuery} from 'storefrontapi.generated';
 import {
+  isArtwork,
   ARTWORK_CARD_FRAGMENT,
   artistOf,
   type ArtworkCardData,
@@ -99,6 +100,7 @@ async function buildCorpus(storefront: Storefront): Promise<Corpus> {
     );
     for (const node of products.nodes) {
       const card = node as unknown as ArtworkCardData;
+      if (!isArtwork(card)) continue;
       works.set(node.id, card);
       const mediums = (node.mediums?.references?.nodes ?? [])
         .map((n: {field?: {value?: string | null} | null}) => n.field?.value)

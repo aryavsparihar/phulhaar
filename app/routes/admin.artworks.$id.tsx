@@ -50,7 +50,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   const admin = adminClient(parseEnv(context.env));
   const isNew = params.id === 'new';
   if (!admin)
-    return {isNew, artwork: null, options: {} as Options, error: null};
+    return {
+      isNew,
+      artwork: null,
+      options: {} as Options,
+      presetArtist: null,
+      error: null,
+    };
   try {
     const [artwork, options] = await Promise.all([
       isNew
@@ -59,12 +65,19 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
       loadOptions(admin, referencedTypes(FIELDS)),
     ]);
     if (!isNew && !artwork) throw new Response(null, {status: 404});
-    return {isNew, artwork, options, error: null};
+    // "Add a work by this artist" from an artist's page arrives with ?artist=<id>.
+    const artistParam = new URL(request.url).searchParams.get('artist');
+    const presetArtist =
+      isNew && artistParam && /^\d+$/.test(artistParam)
+        ? gid('Metaobject', artistParam)
+        : null;
+    return {isNew, artwork, options, presetArtist, error: null};
   } catch (error) {
     return {
       isNew,
       artwork: null as ArtworkDetail | null,
       options: {} as Options,
+      presetArtist: null as string | null,
       error: failure(error),
     };
   }
@@ -218,12 +231,14 @@ function htmlToText(html: string) {
 }
 
 export default function EditArtwork() {
-  const {isNew, artwork, options, error} = useLoaderData<typeof loader>();
+  const {isNew, artwork, options, presetArtist, error} =
+    useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state === 'submitting';
   const fieldErrors = result?.fieldErrors ?? {};
-  const values = artwork?.metafields ?? {};
+  const values: Record<string, string> =
+    artwork?.metafields ?? (presetArtist ? {artist: presetArtist} : {});
   const [previews, setPreviews] = useState<File[]>([]);
   const saved =
     typeof window !== 'undefined' &&

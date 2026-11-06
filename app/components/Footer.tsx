@@ -23,9 +23,6 @@ export function Footer({enquiryEmail}: {enquiryEmail: string}) {
               <Link to="/artists">Artists</Link>
             </li>
             <li>
-              <Link to="/traditions">Traditions</Link>
-            </li>
-            <li>
               <Link to="/visit">Visit and contact</Link>
             </li>
           </ul>

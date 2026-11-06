@@ -3,6 +3,7 @@ import {getPaginationVariables} from '@shopify/hydrogen';
 import type {Route} from './+types/collections.all';
 import {ArtworkGrid} from '~/components/ArtworkCard';
 import {
+  isArtwork,
   ARTWORK_CARD_FRAGMENT,
   SORTS,
   sortFrom,
@@ -43,7 +44,7 @@ export async function loader({context, request}: Route.LoaderArgs) {
 
   return {
     tags,
-    products: products.nodes as ArtworkCardData[],
+    products: (products.nodes as ArtworkCardData[]).filter(isArtwork),
     pageInfo: products.pageInfo,
     q,
     sort,
@@ -116,7 +117,7 @@ export default function Catalogue() {
       <ArtworkGrid products={products} eager={8} />
 
       <nav className="pagination" aria-label="More artworks">
-        {pageInfo.hasNextPage ? (
+        {pageInfo.hasNextPage && products.length ? (
           <Link
             to={href({cursor: pageInfo.endCursor ?? '', direction: 'next'})}
           >
