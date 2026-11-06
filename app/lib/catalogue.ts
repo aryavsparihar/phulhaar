@@ -147,6 +147,22 @@ export function saleStateOf(work: {
   return 'available';
 }
 
+/**
+ * Stock for a work as saved in the admin, or null when Shopify's own count is left alone.
+ *
+ * An original is one thing: one in stock until it sells, then none, so Shopify itself refuses a
+ * second sale. A reserved, price-on-request or not-for-sale original keeps its one, because the
+ * storefront reads "no stock" as sold; those states hide the buy button instead. Editions and
+ * prints keep whatever count staff set in Shopify.
+ */
+export function stockFor(values: {
+  rarity?: string | null;
+  availability?: string | null;
+}): number | null {
+  if ((values.rarity || 'original') !== 'original') return null;
+  return values.availability?.trim().toLowerCase() === 'sold' ? 0 : 1;
+}
+
 /** Whether a buyer can still have it: bought now, or asked for a price. */
 export const isObtainable = (state: SaleState) =>
   state === 'available' || state === 'price_on_request';

@@ -185,3 +185,52 @@ test('a colour filter shows as a pill', async ({page}) => {
       .getByRole('link', {name: 'Remove Indigo'}),
   ).toBeVisible();
 });
+
+/** What CartForm posts: the action and its inputs as JSON, beside any plain fields. */
+function cartForm(redirectTo?: string) {
+  return {
+    cartFormInput: JSON.stringify({
+      action: 'LinesAdd',
+      // A mock.shop variant that is always for sale; the artwork page sends the work's own.
+      inputs: {
+        lines: [
+          {
+            merchandiseId: 'gid://shopify/ProductVariant/43695710371862',
+            quantity: 1,
+          },
+        ],
+      },
+    }),
+    ...(redirectTo ? {redirectTo} : {}),
+  };
+}
+
+test('Buy now adds the work and hands the buyer to Shopify checkout', async ({
+  request,
+}) => {
+  const response = await request.post('/cart', {
+    form: cartForm('__checkout'),
+    maxRedirects: 0,
+  });
+
+  expect(response.status()).toBe(303);
+  const location = new URL(response.headers()['location'] ?? '');
+  expect(location.protocol).toBe('https:');
+  // Shopify's checkout, off this site: /cart/c/… on a real store, /checkout on mock.shop.
+  expect(location.hostname).not.toBe('localhost');
+  expect(location.pathname).toMatch(/^\/(cart\/c\/|checkout)/);
+  // The cart is remembered, so the buyer coming back from checkout still has it.
+  expect(response.headers()['set-cookie'] ?? '').toContain('cart=');
+});
+
+test('the cart never redirects a buyer to somebody else’s site', async ({
+  request,
+}) => {
+  const response = await request.post('/cart', {
+    form: cartForm('https://example.com/'),
+    maxRedirects: 0,
+  });
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()['location']).toBeUndefined();
+});
